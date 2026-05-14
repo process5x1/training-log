@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Training Log</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 48px;
+    }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 320px;
+    }
+
+    .card {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+
+    .card:active { background: #1e1e1e; }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Training Log</h1>
+
+  <div class="cards">
+    <a class="card" href="nutrition.html">
+      <div class="card-title">Nutrition Tracker</div>
+      <div class="card-desc">Log your meals and calories</div>
+    </a>
+    <a class="card" href="fitness.html">
+      <div class="card-title">Fitness Log</div>
+      <div class="card-desc">Track your workouts</div>
+    </a>
+  </div>
+
+</body>
+</html>
