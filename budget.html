@@ -36,7 +36,7 @@
       justify-content: space-between;
       width: 100%;
       max-width: 320px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
 
     .month-label {
@@ -57,6 +57,96 @@
 
     .nav-btn:active { color: #fff; }
 
+    /* Monthly budget card */
+    .budget-card {
+      width: 100%;
+      max-width: 320px;
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 20px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .budget-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .budget-section-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #444;
+    }
+
+    .budget-set-btn {
+      background: none;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #555;
+      font-size: 11px;
+      font-family: inherit;
+      padding: 4px 10px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+    }
+
+    .budget-set-btn:active { color: #fff; border-color: #555; }
+
+    .budget-numbers {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 12px;
+    }
+
+    .budget-stat { display: flex; flex-direction: column; gap: 4px; }
+
+    .budget-stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .budget-stat-val.over { color: #ef4444; }
+    .budget-stat-val.warning { color: #f59e0b; }
+
+    .budget-stat-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #333;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 3px;
+      background: #1e1e1e;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.warning { background: #f59e0b; }
+    .progress-fill.over { background: #ef4444; }
+
+    .set-budget-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .set-budget-row.hidden { display: none; }
+
+    /* Calendar */
     .calendar {
       width: 100%;
       max-width: 320px;
@@ -89,25 +179,10 @@
       gap: 2px;
     }
 
-    .day.empty {
-      background: transparent;
-      border-color: transparent;
-      cursor: default;
-    }
-
-    .day.today {
-      border-color: #333;
-    }
-
-    .day.selected {
-      background: #fff;
-      border-color: #fff;
-    }
-
-    .day.has-spend {
-      border-color: #2a2a2a;
-    }
-
+    .day.empty { background: transparent; border-color: transparent; cursor: default; }
+    .day.today { border-color: #333; }
+    .day.selected { background: #fff; border-color: #fff; }
+    .day.has-spend { border-color: #2a2a2a; }
     .day:not(.empty):active { background: #1e1e1e; }
     .day.selected:active { background: #ddd; }
 
@@ -170,10 +245,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .input-row {
-      display: flex;
-      gap: 8px;
-    }
+    .input-row { display: flex; gap: 8px; }
 
     input[type="number"] {
       flex: 1;
@@ -217,10 +289,7 @@
       align-items: center;
     }
 
-    .entry-time {
-      font-size: 12px;
-      color: #333;
-    }
+    .entry-time { font-size: 12px; color: #333; }
 
     .entry-val {
       font-size: 14px;
@@ -250,13 +319,40 @@
     <button class="nav-btn" onclick="changeMonth(1)">›</button>
   </div>
 
+  <!-- Monthly Budget Card -->
+  <div class="budget-card">
+    <div class="budget-top">
+      <div class="budget-section-label">Monthly Budget</div>
+      <button class="budget-set-btn" onclick="toggleSetBudget()">Set</button>
+    </div>
+    <div class="budget-numbers">
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="budgetAmt">—</div>
+        <div class="budget-stat-label">Budget</div>
+      </div>
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="spentAmt">£0</div>
+        <div class="budget-stat-label">Spent</div>
+      </div>
+      <div class="budget-stat">
+        <div class="budget-stat-val" id="remainAmt">—</div>
+        <div class="budget-stat-label">Remaining</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="set-budget-row hidden" id="setBudgetRow">
+      <input type="number" id="budgetInput" placeholder="Monthly budget" min="0" />
+      <button class="add-btn" onclick="saveBudget()">Save</button>
+    </div>
+  </div>
+
   <div class="calendar" id="calendar"></div>
 
   <div class="panel" id="panel">
     <div class="panel-date" id="panelDate"></div>
     <div class="total-row">
       <div class="total-label">Total Spend</div>
-      <div class="total-value" id="totalSpend">$0</div>
+      <div class="total-value" id="totalSpend">£0</div>
     </div>
     <div class="input-row">
       <input type="number" id="valueInput" placeholder="Add value" min="0" step="0.01" />
@@ -274,23 +370,78 @@
     let viewMonth = current.getMonth();
     let selectedDate = null;
 
-    function storageKey(dateStr) { return 'budget_' + dateStr; }
+    function monthKey() { return `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`; }
+    function entryKey(dateStr) { return 'budget_' + dateStr; }
+    function budgetKey() { return 'monthly_budget_' + monthKey(); }
 
     function getEntries(dateStr) {
-      return JSON.parse(localStorage.getItem(storageKey(dateStr)) || '[]');
+      return JSON.parse(localStorage.getItem(entryKey(dateStr)) || '[]');
     }
 
     function saveEntries(dateStr, entries) {
-      localStorage.setItem(storageKey(dateStr), JSON.stringify(entries));
+      localStorage.setItem(entryKey(dateStr), JSON.stringify(entries));
     }
 
-    function total(entries) {
-      return entries.reduce((s, e) => s + e.val, 0);
+    function getMonthBudget() {
+      return parseFloat(localStorage.getItem(budgetKey()) || '0');
+    }
+
+    function getMonthTotal() {
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      let total = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = toDateStr(new Date(viewYear, viewMonth, d));
+        getEntries(dateStr).forEach(e => total += e.val);
+      }
+      return total;
+    }
+
+    function renderBudgetCard() {
+      const budget = getMonthBudget();
+      const spent = getMonthTotal();
+      const remaining = budget - spent;
+      const pct = budget ? Math.min((spent / budget) * 100, 100) : 0;
+
+      document.getElementById('budgetAmt').textContent = budget ? `£${budget.toLocaleString()}` : '—';
+      document.getElementById('spentAmt').textContent = `£${spent.toFixed(2)}`;
+
+      const remainEl = document.getElementById('remainAmt');
+      if (!budget) {
+        remainEl.textContent = '—';
+        remainEl.className = 'budget-stat-val';
+      } else {
+        remainEl.textContent = `£${Math.abs(remaining).toFixed(2)}`;
+        remainEl.className = 'budget-stat-val' + (remaining < 0 ? ' over' : remaining / budget < 0.2 ? ' warning' : '');
+      }
+
+      const fill = document.getElementById('progressFill');
+      fill.style.width = pct + '%';
+      fill.className = 'progress-fill' + (pct >= 100 ? ' over' : pct >= 80 ? ' warning' : '');
+    }
+
+    function toggleSetBudget() {
+      const row = document.getElementById('setBudgetRow');
+      row.classList.toggle('hidden');
+      if (!row.classList.contains('hidden')) document.getElementById('budgetInput').focus();
+    }
+
+    function saveBudget() {
+      const val = parseFloat(document.getElementById('budgetInput').value);
+      if (!val || val <= 0) return;
+      localStorage.setItem(budgetKey(), val);
+      document.getElementById('budgetInput').value = '';
+      document.getElementById('setBudgetRow').classList.add('hidden');
+      renderBudgetCard();
+    }
+
+    function toDateStr(date) {
+      return date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
     }
 
     function renderCalendar() {
       document.getElementById('monthLabel').textContent = MONTHS[viewMonth] + ' ' + viewYear;
-
       const cal = document.getElementById('calendar');
       cal.innerHTML = DAYS.map(d => `<div class="day-header">${d}</div>`).join('');
 
@@ -298,14 +449,11 @@
       const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
       const todayStr = toDateStr(current);
 
-      for (let i = 0; i < firstDay; i++) {
-        cal.innerHTML += `<div class="day empty"></div>`;
-      }
+      for (let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
 
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = toDateStr(new Date(viewYear, viewMonth, d));
-        const entries = getEntries(dateStr);
-        const hasSpend = entries.length > 0;
+        const hasSpend = getEntries(dateStr).length > 0;
         const isToday = dateStr === todayStr;
         const isSelected = dateStr === selectedDate;
 
@@ -316,12 +464,6 @@
       }
     }
 
-    function toDateStr(date) {
-      return date.getFullYear() + '-' +
-        String(date.getMonth() + 1).padStart(2, '0') + '-' +
-        String(date.getDate()).padStart(2, '0');
-    }
-
     function selectDate(dateStr) {
       selectedDate = dateStr;
       renderCalendar();
@@ -330,22 +472,21 @@
 
     function renderPanel() {
       if (!selectedDate) return;
-      const panel = document.getElementById('panel');
-      panel.classList.add('visible');
+      document.getElementById('panel').classList.add('visible');
 
       const [y, m, d] = selectedDate.split('-');
       document.getElementById('panelDate').textContent =
         MONTHS[parseInt(m) - 1] + ' ' + parseInt(d) + ', ' + y;
 
       const entries = getEntries(selectedDate);
-      document.getElementById('totalSpend').textContent = '$' + total(entries).toFixed(2);
+      const t = entries.reduce((s, e) => s + e.val, 0);
+      document.getElementById('totalSpend').textContent = '£' + t.toFixed(2);
 
-      const list = document.getElementById('entriesList');
-      list.innerHTML = entries.slice().reverse().map((e, ri) => {
+      document.getElementById('entriesList').innerHTML = entries.slice().reverse().map((e, ri) => {
         const i = entries.length - 1 - ri;
         return `<div class="entry-item">
           <div class="entry-time">${e.time}</div>
-          <div class="entry-val">$${e.val.toFixed(2)}</div>
+          <div class="entry-val">£${e.val.toFixed(2)}</div>
           <button class="entry-del" onclick="deleteEntry(${i})">✕</button>
         </div>`;
       }).join('');
@@ -362,6 +503,7 @@
       input.value = '';
       renderCalendar();
       renderPanel();
+      renderBudgetCard();
     }
 
     function deleteEntry(i) {
@@ -370,6 +512,7 @@
       saveEntries(selectedDate, entries);
       renderCalendar();
       renderPanel();
+      renderBudgetCard();
     }
 
     function changeMonth(dir) {
@@ -379,9 +522,11 @@
       selectedDate = null;
       document.getElementById('panel').classList.remove('visible');
       renderCalendar();
+      renderBudgetCard();
     }
 
     renderCalendar();
+    renderBudgetCard();
   </script>
 </body>
 </html>
