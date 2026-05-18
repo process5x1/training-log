@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Budget Log</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 24px 40px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .back {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444;
+      text-decoration: none;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 32px;
+      align-self: flex-start;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .section {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 16px;
+    }
+
+    .budget-display {
+      font-size: 48px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .budget-sub {
+      font-size: 12px;
+      color: #444;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #1e1e1e;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.warning { background: #f59e0b; }
+    .progress-fill.over { background: #ef4444; }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input {
+      flex: 1;
+      background: #0a0a0a;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    input::placeholder { color: #333; }
+    input:focus { border-color: #333; }
+
+    button {
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    button:active { opacity: 0.8; }
+
+    .entries {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .entry-note {
+      font-size: 14px;
+      color: #ccc;
+      flex: 1;
+      margin-right: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .entry-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .entry-amount {
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .entry-delete {
+      background: none;
+      border: none;
+      color: #333;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .entry-delete:active { color: #ef4444; }
+
+    .empty {
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="back" href="index.html">← Back</a>
+  <h1>Budget Log</h1>
+
+  <!-- Monthly Budget -->
+  <div class="section">
+    <div class="section-title">Monthly Budget</div>
+    <div class="budget-display" id="budgetDisplay">—</div>
+    <div class="budget-sub" id="budgetSub"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="input-row">
+      <input type="number" id="budgetInput" placeholder="Set monthly budget" min="0" />
+      <button onclick="setBudget()">Set</button>
+    </div>
+  </div>
+
+  <!-- Daily Entry -->
+  <div class="section">
+    <div class="section-title">Daily Entry</div>
+    <div class="input-row" style="margin-bottom:12px">
+      <input type="text" id="noteInput" placeholder="What did you spend on?" />
+    </div>
+    <div class="input-row">
+      <input type="number" id="amountInput" placeholder="Amount" min="0" step="0.01" />
+      <button onclick="addEntry()">Add</button>
+    </div>
+  </div>
+
+  <!-- Entries -->
+  <div class="section">
+    <div class="section-title">This Month</div>
+    <div class="entries" id="entries"></div>
+  </div>
+
+  <script>
+    const monthKey = () => new Date().toISOString().slice(0, 7);
+
+    function getData() {
+      return JSON.parse(localStorage.getItem('budget_' + monthKey()) || '{"budget":0,"entries":[]}');
+    }
+
+    function saveData(data) {
+      localStorage.setItem('budget_' + monthKey(), JSON.stringify(data));
+    }
+
+    function render() {
+      const data = getData();
+      const total = data.entries.reduce((s, e) => s + e.amount, 0);
+      const budget = data.budget;
+
+      document.getElementById('budgetDisplay').textContent = budget ? `$${budget.toLocaleString()}` : '—';
+
+      if (budget) {
+        const remaining = budget - total;
+        const pct = Math.min((total / budget) * 100, 100);
+        const fill = document.getElementById('progressFill');
+        fill.style.width = pct + '%';
+        fill.className = 'progress-fill' + (pct >= 100 ? ' over' : pct >= 80 ? ' warning' : '');
+        document.getElementById('budgetSub').textContent =
+          remaining >= 0 ? `$${remaining.toFixed(2)} remaining of $${total.toFixed(2)} spent` : `$${Math.abs(remaining).toFixed(2)} over budget`;
+      } else {
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('budgetSub').textContent = total ? `$${total.toFixed(2)} spent` : '';
+      }
+
+      const container = document.getElementById('entries');
+      if (!data.entries.length) {
+        container.innerHTML = '<div class="empty">No entries yet</div>';
+        return;
+      }
+      container.innerHTML = data.entries.slice().reverse().map((e, ri) => {
+        const i = data.entries.length - 1 - ri;
+        return `<div class="entry">
+          <div class="entry-note">${e.note || 'Expense'}</div>
+          <div class="entry-right">
+            <div class="entry-amount">$${e.amount.toFixed(2)}</div>
+            <button class="entry-delete" onclick="deleteEntry(${i})">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function setBudget() {
+      const val = parseFloat(document.getElementById('budgetInput').value);
+      if (!val || val <= 0) return;
+      const data = getData();
+      data.budget = val;
+      saveData(data);
+      document.getElementById('budgetInput').value = '';
+      render();
+    }
+
+    function addEntry() {
+      const note = document.getElementById('noteInput').value.trim();
+      const amount = parseFloat(document.getElementById('amountInput').value);
+      if (!amount || amount <= 0) return;
+      const data = getData();
+      data.entries.push({ note, amount, date: new Date().toLocaleDateString() });
+      saveData(data);
+      document.getElementById('noteInput').value = '';
+      document.getElementById('amountInput').value = '';
+      render();
+    }
+
+    function deleteEntry(i) {
+      const data = getData();
+      data.entries.splice(i, 1);
+      saveData(data);
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
