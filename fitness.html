@@ -166,8 +166,12 @@
       margin-bottom: 32px;
     }
 
-    select {
-      appearance: none;
+    .search-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-input {
       background: #141414;
       border: 1px solid #1e1e1e;
       border-radius: 14px;
@@ -176,12 +180,44 @@
       font-family: inherit;
       padding: 16px 20px;
       width: 100%;
-      cursor: pointer;
     }
 
-    select:focus { outline: none; border-color: #333; }
+    .search-input::placeholder { color: #444; }
+    .search-input:focus { outline: none; border-color: #333; }
 
-    option { background: #1a1a1a; }
+    .search-results {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      overflow: hidden;
+      z-index: 10;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .search-result-item {
+      padding: 14px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:active { background: #1e1e1e; }
+
+    .result-group {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444;
+    }
 
     .btn-primary {
       background: #fff;
@@ -244,70 +280,10 @@
     <div id="exerciseList"></div>
 
     <div class="add-exercise-wrap">
-      <select id="exercisePicker">
-        <option value="" disabled selected>Select an exercise…</option>
-        <optgroup label="Chest">
-          <option>Bench Press</option>
-          <option>Incline Bench Press</option>
-          <option>Decline Bench Press</option>
-          <option>Dumbbell Fly</option>
-          <option>Cable Fly</option>
-          <option>Push-Up</option>
-        </optgroup>
-        <optgroup label="Back">
-          <option>Deadlift</option>
-          <option>Pull-Up</option>
-          <option>Chin-Up</option>
-          <option>Barbell Row</option>
-          <option>Dumbbell Row</option>
-          <option>Lat Pulldown</option>
-          <option>Seated Cable Row</option>
-          <option>T-Bar Row</option>
-        </optgroup>
-        <optgroup label="Shoulders">
-          <option>Overhead Press</option>
-          <option>Dumbbell Shoulder Press</option>
-          <option>Lateral Raise</option>
-          <option>Front Raise</option>
-          <option>Face Pull</option>
-          <option>Arnold Press</option>
-        </optgroup>
-        <optgroup label="Arms">
-          <option>Barbell Curl</option>
-          <option>Dumbbell Curl</option>
-          <option>Hammer Curl</option>
-          <option>Preacher Curl</option>
-          <option>Tricep Pushdown</option>
-          <option>Skull Crusher</option>
-          <option>Overhead Tricep Extension</option>
-          <option>Dips</option>
-        </optgroup>
-        <optgroup label="Legs">
-          <option>Squat</option>
-          <option>Front Squat</option>
-          <option>Leg Press</option>
-          <option>Romanian Deadlift</option>
-          <option>Leg Curl</option>
-          <option>Leg Extension</option>
-          <option>Lunge</option>
-          <option>Bulgarian Split Squat</option>
-          <option>Calf Raise</option>
-        </optgroup>
-        <optgroup label="Core">
-          <option>Plank</option>
-          <option>Crunch</option>
-          <option>Cable Crunch</option>
-          <option>Hanging Leg Raise</option>
-          <option>Ab Rollout</option>
-        </optgroup>
-        <optgroup label="Cardio">
-          <option>Treadmill</option>
-          <option>Cycling</option>
-          <option>Rowing Machine</option>
-          <option>Jump Rope</option>
-        </optgroup>
-      </select>
-      <button class="btn-primary" id="addExerciseBtn">Add Exercise</button>
+      <div class="search-wrap">
+        <input class="search-input" id="exerciseSearch" type="text" placeholder="Search exercise…" autocomplete="off" />
+        <div class="search-results hidden" id="searchResults"></div>
+      </div>
     </div>
 
     <button class="btn-ghost" id="saveSessionBtn">Save Session</button>
@@ -316,12 +292,94 @@
   <script>
     const EXERCISES_KEY = 'fitnessSessions';
 
+    const EXERCISE_DB = [
+      { name: 'Bench Press',               group: 'Chest' },
+      { name: 'Incline Bench Press',        group: 'Chest' },
+      { name: 'Decline Bench Press',        group: 'Chest' },
+      { name: 'Dumbbell Fly',               group: 'Chest' },
+      { name: 'Cable Fly',                  group: 'Chest' },
+      { name: 'Push-Up',                    group: 'Chest' },
+      { name: 'Deadlift',                   group: 'Back' },
+      { name: 'Pull-Up',                    group: 'Back' },
+      { name: 'Chin-Up',                    group: 'Back' },
+      { name: 'Barbell Row',                group: 'Back' },
+      { name: 'Dumbbell Row',               group: 'Back' },
+      { name: 'Lat Pulldown',               group: 'Back' },
+      { name: 'Seated Cable Row',           group: 'Back' },
+      { name: 'T-Bar Row',                  group: 'Back' },
+      { name: 'Overhead Press',             group: 'Shoulders' },
+      { name: 'Dumbbell Shoulder Press',    group: 'Shoulders' },
+      { name: 'Lateral Raise',              group: 'Shoulders' },
+      { name: 'Front Raise',                group: 'Shoulders' },
+      { name: 'Face Pull',                  group: 'Shoulders' },
+      { name: 'Arnold Press',               group: 'Shoulders' },
+      { name: 'Barbell Curl',               group: 'Arms' },
+      { name: 'Dumbbell Curl',              group: 'Arms' },
+      { name: 'Hammer Curl',                group: 'Arms' },
+      { name: 'Preacher Curl',              group: 'Arms' },
+      { name: 'Tricep Pushdown',            group: 'Arms' },
+      { name: 'Skull Crusher',              group: 'Arms' },
+      { name: 'Overhead Tricep Extension',  group: 'Arms' },
+      { name: 'Dips',                       group: 'Arms' },
+      { name: 'Squat',                      group: 'Legs' },
+      { name: 'Front Squat',                group: 'Legs' },
+      { name: 'Leg Press',                  group: 'Legs' },
+      { name: 'Romanian Deadlift',          group: 'Legs' },
+      { name: 'Leg Curl',                   group: 'Legs' },
+      { name: 'Leg Extension',              group: 'Legs' },
+      { name: 'Lunge',                      group: 'Legs' },
+      { name: 'Bulgarian Split Squat',      group: 'Legs' },
+      { name: 'Calf Raise',                 group: 'Legs' },
+      { name: 'Plank',                      group: 'Core' },
+      { name: 'Crunch',                     group: 'Core' },
+      { name: 'Cable Crunch',               group: 'Core' },
+      { name: 'Hanging Leg Raise',          group: 'Core' },
+      { name: 'Ab Rollout',                 group: 'Core' },
+      { name: 'Treadmill',                  group: 'Cardio' },
+      { name: 'Cycling',                    group: 'Cardio' },
+      { name: 'Rowing Machine',             group: 'Cardio' },
+      { name: 'Jump Rope',                  group: 'Cardio' },
+    ];
+
+    const searchInput   = document.getElementById('exerciseSearch');
+    const searchResults = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) { searchResults.classList.add('hidden'); return; }
+
+      const matches = EXERCISE_DB.filter(e => e.name.toLowerCase().includes(q)).slice(0, 8);
+      if (!matches.length) { searchResults.classList.add('hidden'); return; }
+
+      searchResults.innerHTML = matches.map(e => `
+        <div class="search-result-item" data-name="${e.name}">
+          <span>${e.name}</span>
+          <span class="result-group">${e.group}</span>
+        </div>
+      `).join('');
+
+      searchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          addExerciseRow(item.dataset.name);
+          searchInput.value = '';
+          searchResults.classList.add('hidden');
+        });
+      });
+
+      searchResults.classList.remove('hidden');
+    });
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-wrap')) searchResults.classList.add('hidden');
+    });
+
     document.getElementById('newSession').addEventListener('click', () => {
       document.getElementById('homeScreen').style.display = 'none';
       const s = document.getElementById('sessionScreen');
       s.style.display = 'flex';
       document.getElementById('exerciseList').innerHTML = '';
-      document.getElementById('exercisePicker').value = '';
+      searchInput.value = '';
+      searchResults.classList.add('hidden');
     });
 
     document.getElementById('sessionBack').addEventListener('click', () => {
@@ -331,14 +389,6 @@
 
     document.getElementById('loadSession').addEventListener('click', () => {
       // TODO: load past sessions
-    });
-
-    document.getElementById('addExerciseBtn').addEventListener('click', () => {
-      const picker = document.getElementById('exercisePicker');
-      const name = picker.value;
-      if (!name) return;
-      addExerciseRow(name);
-      picker.value = '';
     });
 
     function addExerciseRow(name) {
