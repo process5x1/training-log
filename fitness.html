@@ -29,6 +29,9 @@
       text-transform: uppercase;
       color: #444;
       text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
     }
 
     h1 {
@@ -39,6 +42,7 @@
       margin-bottom: 48px;
     }
 
+    /* ── Home screen ── */
     .cards {
       display: flex;
       flex-direction: column;
@@ -51,7 +55,6 @@
       border: 1px solid #1e1e1e;
       border-radius: 20px;
       padding: 32px 24px;
-      text-decoration: none;
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -62,41 +65,330 @@
 
     .card:active { background: #1e1e1e; }
 
-    .card-title {
-      font-size: 20px;
+    .card-title { font-size: 20px; font-weight: 600; }
+    .card-desc  { font-size: 12px; letter-spacing: 0.05em; color: #444; }
+
+    /* ── Session screen ── */
+    #sessionScreen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      min-height: 100dvh;
+      padding: 88px 24px 48px;
+    }
+
+    .session-header {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 32px;
+    }
+
+    /* Exercise list */
+    #exerciseList {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 360px;
+      margin-bottom: 24px;
+    }
+
+    .exercise-row {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .exercise-row-name {
+      font-size: 15px;
       font-weight: 600;
     }
 
-    .card-desc {
-      font-size: 12px;
-      letter-spacing: 0.05em;
-      color: #444;
+    .sets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
+
+    .set-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .set-row span { min-width: 48px; }
+
+    .set-input {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      padding: 6px 10px;
+      width: 64px;
+      text-align: center;
+    }
+
+    .set-input:focus { outline: none; border-color: #444; }
+
+    .add-set-btn {
+      background: none;
+      border: 1px dashed #2a2a2a;
+      border-radius: 8px;
+      color: #444;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .add-set-btn:active { border-color: #555; color: #888; }
+
+    /* Add exercise area */
+    .add-exercise-wrap {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    select {
+      appearance: none;
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      padding: 16px 20px;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    select:focus { outline: none; border-color: #333; }
+
+    option { background: #1a1a1a; }
+
+    .btn-primary {
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 16px;
+      width: 100%;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary:active { opacity: 0.8; }
+
+    .btn-ghost {
+      background: #141414;
+      color: #888;
+      border: 1px solid #1e1e1e;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 16px;
+      width: 100%;
+      max-width: 360px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-ghost:active { background: #1e1e1e; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <a class="back" href="index.html">← Back</a>
-  <h1>Fitness Log</h1>
-
-  <div class="cards">
-    <div class="card" id="newSession">
-      <div class="card-title">New Session</div>
-      <div class="card-desc">Start a new workout</div>
-    </div>
-    <div class="card" id="loadSession">
-      <div class="card-title">Load Existing</div>
-      <div class="card-desc">View past workouts</div>
+  <!-- Home -->
+  <div id="homeScreen">
+    <button class="back" onclick="window.location.href='index.html'">← Back</button>
+    <h1>Fitness Log</h1>
+    <div class="cards">
+      <div class="card" id="newSession">
+        <div class="card-title">New Session</div>
+        <div class="card-desc">Start a new workout</div>
+      </div>
+      <div class="card" id="loadSession">
+        <div class="card-title">Load Existing</div>
+        <div class="card-desc">View past workouts</div>
+      </div>
     </div>
   </div>
 
+  <!-- New Session -->
+  <div id="sessionScreen">
+    <button class="back" id="sessionBack">← Back</button>
+    <div class="session-header">New Session</div>
+
+    <div id="exerciseList"></div>
+
+    <div class="add-exercise-wrap">
+      <select id="exercisePicker">
+        <option value="" disabled selected>Select an exercise…</option>
+        <optgroup label="Chest">
+          <option>Bench Press</option>
+          <option>Incline Bench Press</option>
+          <option>Decline Bench Press</option>
+          <option>Dumbbell Fly</option>
+          <option>Cable Fly</option>
+          <option>Push-Up</option>
+        </optgroup>
+        <optgroup label="Back">
+          <option>Deadlift</option>
+          <option>Pull-Up</option>
+          <option>Chin-Up</option>
+          <option>Barbell Row</option>
+          <option>Dumbbell Row</option>
+          <option>Lat Pulldown</option>
+          <option>Seated Cable Row</option>
+          <option>T-Bar Row</option>
+        </optgroup>
+        <optgroup label="Shoulders">
+          <option>Overhead Press</option>
+          <option>Dumbbell Shoulder Press</option>
+          <option>Lateral Raise</option>
+          <option>Front Raise</option>
+          <option>Face Pull</option>
+          <option>Arnold Press</option>
+        </optgroup>
+        <optgroup label="Arms">
+          <option>Barbell Curl</option>
+          <option>Dumbbell Curl</option>
+          <option>Hammer Curl</option>
+          <option>Preacher Curl</option>
+          <option>Tricep Pushdown</option>
+          <option>Skull Crusher</option>
+          <option>Overhead Tricep Extension</option>
+          <option>Dips</option>
+        </optgroup>
+        <optgroup label="Legs">
+          <option>Squat</option>
+          <option>Front Squat</option>
+          <option>Leg Press</option>
+          <option>Romanian Deadlift</option>
+          <option>Leg Curl</option>
+          <option>Leg Extension</option>
+          <option>Lunge</option>
+          <option>Bulgarian Split Squat</option>
+          <option>Calf Raise</option>
+        </optgroup>
+        <optgroup label="Core">
+          <option>Plank</option>
+          <option>Crunch</option>
+          <option>Cable Crunch</option>
+          <option>Hanging Leg Raise</option>
+          <option>Ab Rollout</option>
+        </optgroup>
+        <optgroup label="Cardio">
+          <option>Treadmill</option>
+          <option>Cycling</option>
+          <option>Rowing Machine</option>
+          <option>Jump Rope</option>
+        </optgroup>
+      </select>
+      <button class="btn-primary" id="addExerciseBtn">Add Exercise</button>
+    </div>
+
+    <button class="btn-ghost" id="saveSessionBtn">Save Session</button>
+  </div>
+
   <script>
+    const EXERCISES_KEY = 'fitnessSessions';
+
     document.getElementById('newSession').addEventListener('click', () => {
-      // TODO: open new session view
+      document.getElementById('homeScreen').style.display = 'none';
+      const s = document.getElementById('sessionScreen');
+      s.style.display = 'flex';
+      document.getElementById('exerciseList').innerHTML = '';
+      document.getElementById('exercisePicker').value = '';
+    });
+
+    document.getElementById('sessionBack').addEventListener('click', () => {
+      document.getElementById('sessionScreen').style.display = 'none';
+      document.getElementById('homeScreen').style.display = 'flex';
     });
 
     document.getElementById('loadSession').addEventListener('click', () => {
-      // TODO: open past sessions view
+      // TODO: load past sessions
+    });
+
+    document.getElementById('addExerciseBtn').addEventListener('click', () => {
+      const picker = document.getElementById('exercisePicker');
+      const name = picker.value;
+      if (!name) return;
+      addExerciseRow(name);
+      picker.value = '';
+    });
+
+    function addExerciseRow(name) {
+      const list = document.getElementById('exerciseList');
+      const row = document.createElement('div');
+      row.className = 'exercise-row';
+      row.dataset.name = name;
+      row.innerHTML = `
+        <div class="exercise-row-name">${name}</div>
+        <div class="sets-list"></div>
+        <button class="add-set-btn">+ Add Set</button>
+      `;
+      row.querySelector('.add-set-btn').addEventListener('click', () => addSetRow(row));
+      addSetRow(row);
+      list.appendChild(row);
+    }
+
+    function addSetRow(exerciseRow) {
+      const setsList = exerciseRow.querySelector('.sets-list');
+      const setNum = setsList.children.length + 1;
+      const setRow = document.createElement('div');
+      setRow.className = 'set-row';
+      setRow.innerHTML = `
+        <span>Set ${setNum}</span>
+        <input class="set-input" type="number" placeholder="kg" min="0" />
+        <input class="set-input" type="number" placeholder="reps" min="0" />
+      `;
+      setsList.appendChild(setRow);
+      setRow.querySelectorAll('input')[0].focus();
+    }
+
+    document.getElementById('saveSessionBtn').addEventListener('click', () => {
+      const rows = document.querySelectorAll('.exercise-row');
+      if (!rows.length) return;
+
+      const exercises = Array.from(rows).map(row => {
+        const sets = Array.from(row.querySelectorAll('.set-row')).map(s => {
+          const inputs = s.querySelectorAll('input');
+          return { weight: inputs[0].value, reps: inputs[1].value };
+        });
+        return { name: row.dataset.name, sets };
+      });
+
+      const session = { date: new Date().toISOString(), exercises };
+      const all = JSON.parse(localStorage.getItem(EXERCISES_KEY) || '[]');
+      all.push(session);
+      localStorage.setItem(EXERCISES_KEY, JSON.stringify(all));
+
+      document.getElementById('sessionScreen').style.display = 'none';
+      document.getElementById('homeScreen').style.display = 'flex';
     });
   </script>
 
