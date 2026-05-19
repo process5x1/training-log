@@ -109,23 +109,37 @@
     .exercise-row-name {
       font-size: 15px;
       font-weight: 600;
+      margin-bottom: 4px;
     }
 
-    .sets-list {
+    /* 4-column header + rows */
+    .sets-table {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .set-row {
-      display: flex;
+    .sets-header, .set-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 1fr 1fr;
+      gap: 8px;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: #888;
     }
 
-    .set-row span { min-width: 48px; }
+    .sets-header {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444;
+      padding: 0 2px 4px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .set-num {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+    }
 
     .set-input {
       background: #1e1e1e;
@@ -133,8 +147,9 @@
       border-radius: 8px;
       color: #fff;
       font-size: 14px;
-      padding: 6px 10px;
-      width: 64px;
+      font-family: inherit;
+      padding: 8px 6px;
+      width: 100%;
       text-align: center;
     }
 
@@ -145,13 +160,14 @@
       border: 1px dashed #2a2a2a;
       border-radius: 8px;
       color: #444;
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       padding: 8px;
       width: 100%;
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s;
+      margin-top: 4px;
     }
 
     .add-set-btn:active { border-color: #555; color: #888; }
@@ -398,7 +414,14 @@
       row.dataset.name = name;
       row.innerHTML = `
         <div class="exercise-row-name">${name}</div>
-        <div class="sets-list"></div>
+        <div class="sets-table">
+          <div class="sets-header">
+            <span style="text-align:center">Set</span>
+            <span style="text-align:center">Reps</span>
+            <span style="text-align:center">Weight</span>
+            <span style="text-align:center">Rest</span>
+          </div>
+        </div>
         <button class="add-set-btn">+ Add Set</button>
       `;
       row.querySelector('.add-set-btn').addEventListener('click', () => addSetRow(row));
@@ -407,17 +430,17 @@
     }
 
     function addSetRow(exerciseRow) {
-      const setsList = exerciseRow.querySelector('.sets-list');
-      const setNum = setsList.children.length + 1;
+      const table = exerciseRow.querySelector('.sets-table');
+      const setNum = table.querySelectorAll('.set-row').length + 1;
       const setRow = document.createElement('div');
       setRow.className = 'set-row';
       setRow.innerHTML = `
-        <span>Set ${setNum}</span>
-        <input class="set-input" type="number" placeholder="kg" min="0" />
-        <input class="set-input" type="number" placeholder="reps" min="0" />
+        <span class="set-num">${setNum}</span>
+        <input class="set-input" type="number" placeholder="—" min="0" />
+        <input class="set-input" type="number" placeholder="—" min="0" />
+        <input class="set-input" type="number" placeholder="—" min="0" />
       `;
-      setsList.appendChild(setRow);
-      setRow.querySelectorAll('input')[0].focus();
+      table.appendChild(setRow);
     }
 
     document.getElementById('saveSessionBtn').addEventListener('click', () => {
@@ -427,7 +450,7 @@
       const exercises = Array.from(rows).map(row => {
         const sets = Array.from(row.querySelectorAll('.set-row')).map(s => {
           const inputs = s.querySelectorAll('input');
-          return { weight: inputs[0].value, reps: inputs[1].value };
+          return { reps: inputs[0].value, weight: inputs[1].value, rest: inputs[2].value };
         });
         return { name: row.dataset.name, sets };
       });
