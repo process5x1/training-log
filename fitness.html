@@ -504,11 +504,11 @@
           <span class="set-num">${setNum}</span>
         </div>
         <div class="chip-label">Reps</div>
-        <div class="chip-row reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
+        <div class="chip-row scrollable reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
         <div class="chip-label">Weight (kg)</div>
         <div class="chip-row scrollable weight-chips">${makeChips(WEIGHT_CHIPS, 'weight')}</div>
         <div class="chip-label">Rest</div>
-        <div class="chip-row rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
+        <div class="chip-row scrollable rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
       `;
 
       bindChips(setRow.querySelector('.reps-chips'), 'reps');
