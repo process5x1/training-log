@@ -197,6 +197,27 @@
       margin-bottom: -2px;
     }
 
+    .chip-row-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip-type-input {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 6px 8px;
+      width: 52px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .chip-type-input:focus { outline: none; border-color: #555; }
+
     .add-set-btn {
       background: none;
       border: 1px dashed #2a2a2a;
@@ -484,13 +505,27 @@
       }).join('');
     }
 
-    function bindChips(container, dataKey) {
+    function bindChips(container, dataKey, input) {
       container.querySelectorAll('.chip').forEach(chip => {
         chip.addEventListener('click', () => {
           container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
           chip.classList.add('selected');
+          if (input) input.value = chip.dataset[dataKey];
         });
       });
+
+      if (input) {
+        input.addEventListener('input', () => {
+          const val = input.value.trim();
+          container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+          const match = [...container.querySelectorAll('.chip')]
+            .find(c => String(c.dataset[dataKey]) === String(val));
+          if (match) {
+            match.classList.add('selected');
+            match.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        });
+      }
     }
 
     function addSetRow(exerciseRow) {
@@ -504,16 +539,26 @@
           <span class="set-num">${setNum}</span>
         </div>
         <div class="chip-label">Reps</div>
-        <div class="chip-row scrollable reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
+        <div class="chip-row-wrap">
+          <input class="chip-type-input" type="number" min="1" placeholder="—" data-for="reps-chips" />
+          <div class="chip-row scrollable reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
+        </div>
         <div class="chip-label">Weight (kg)</div>
-        <div class="chip-row scrollable weight-chips">${makeChips(WEIGHT_CHIPS, 'weight')}</div>
+        <div class="chip-row-wrap">
+          <input class="chip-type-input" type="number" min="0" step="0.5" placeholder="—" data-for="weight-chips" />
+          <div class="chip-row scrollable weight-chips">${makeChips(WEIGHT_CHIPS, 'weight')}</div>
+        </div>
         <div class="chip-label">Rest</div>
-        <div class="chip-row scrollable rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
+        <div class="chip-row-wrap">
+          <input class="chip-type-input" type="number" min="0" placeholder="—" data-for="rest-chips" />
+          <div class="chip-row scrollable rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
+        </div>
       `;
 
-      bindChips(setRow.querySelector('.reps-chips'), 'reps');
-      bindChips(setRow.querySelector('.weight-chips'), 'weight');
-      bindChips(setRow.querySelector('.rest-chips'), 'rest');
+      const inputs = setRow.querySelectorAll('.chip-type-input');
+      bindChips(setRow.querySelector('.reps-chips'),   'reps',   inputs[0]);
+      bindChips(setRow.querySelector('.weight-chips'), 'weight', inputs[1]);
+      bindChips(setRow.querySelector('.rest-chips'),   'rest',   inputs[2]);
 
       table.appendChild(setRow);
     }
@@ -527,10 +572,11 @@
           const repsChip   = s.querySelector('.reps-chips .chip.selected');
           const weightChip = s.querySelector('.weight-chips .chip.selected');
           const restChip   = s.querySelector('.rest-chips .chip.selected');
+          const typeInputs = s.querySelectorAll('.chip-type-input');
           return {
-            reps:   repsChip   ? repsChip.dataset.reps   : '',
-            weight: weightChip ? weightChip.dataset.weight : '',
-            rest:   restChip   ? restChip.dataset.rest   : '',
+            reps:   repsChip   ? repsChip.dataset.reps     : typeInputs[0].value,
+            weight: weightChip ? weightChip.dataset.weight : typeInputs[1].value,
+            rest:   restChip   ? restChip.dataset.rest     : typeInputs[2].value,
           };
         });
         return { name: row.dataset.name, sets };
