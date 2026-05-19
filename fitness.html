@@ -235,6 +235,79 @@
 
     .add-set-btn:active { border-color: #555; color: #888; }
 
+    /* Exercise action bar */
+    .exercise-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-complete {
+      flex: 1;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 10px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-complete:active { opacity: 0.8; }
+
+    /* Summary view */
+    .exercise-summary { display: flex; flex-direction: column; gap: 6px; }
+
+    .summary-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    .summary-set-num {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #444;
+      min-width: 36px;
+    }
+
+    .summary-dot { color: #333; }
+
+    .summary-val { color: #ddd; }
+
+    .exercise-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-edit {
+      background: none;
+      border: none;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #444;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .btn-edit:active { color: #888; }
+
+    .done-badge {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #3a3;
+    }
+
     /* Add exercise area */
     .add-exercise-wrap {
       width: 100%;
@@ -470,17 +543,79 @@
       // TODO: load past sessions
     });
 
+    function readSets(row) {
+      return Array.from(row.querySelectorAll('.set-row')).map((s, i) => {
+        const repsChip   = s.querySelector('.reps-chips .chip.selected');
+        const weightChip = s.querySelector('.weight-chips .chip.selected');
+        const restChip   = s.querySelector('.rest-chips .chip.selected');
+        const typeInputs = s.querySelectorAll('.chip-type-input');
+        return {
+          num:    i + 1,
+          reps:   repsChip   ? repsChip.dataset.reps     : typeInputs[0]?.value || '',
+          weight: weightChip ? weightChip.dataset.weight : typeInputs[1]?.value || '',
+          rest:   restChip   ? restChip.dataset.rest     : typeInputs[2]?.value || '',
+        };
+      });
+    }
+
+    function showSummary(row) {
+      const sets = readSets(row);
+      const editor = row.querySelector('.exercise-editor');
+      editor.classList.add('hidden');
+
+      let summaryEl = row.querySelector('.exercise-summary');
+      if (!summaryEl) {
+        summaryEl = document.createElement('div');
+        summaryEl.className = 'exercise-summary';
+        row.appendChild(summaryEl);
+      }
+
+      summaryEl.innerHTML = sets.map(s => {
+        const parts = [];
+        if (s.reps)   parts.push(`<span class="summary-val">${s.reps} reps</span>`);
+        if (s.weight) parts.push(`<span class="summary-val">${s.weight} kg</span>`);
+        if (s.rest)   parts.push(`<span class="summary-val">${s.rest}s rest</span>`);
+        return `<div class="summary-row">
+          <span class="summary-set-num">Set ${s.num}</span>
+          ${parts.join('<span class="summary-dot"> · </span>')}
+        </div>`;
+      }).join('');
+
+      summaryEl.classList.remove('hidden');
+    }
+
     function addExerciseRow(name) {
       const list = document.getElementById('exerciseList');
       const row = document.createElement('div');
       row.className = 'exercise-row';
       row.dataset.name = name;
       row.innerHTML = `
-        <div class="exercise-row-name">${name}</div>
-        <div class="sets-table"></div>
-        <button class="add-set-btn">+ Add Set</button>
+        <div class="exercise-row-header">
+          <div class="exercise-row-name">${name}</div>
+          <button class="btn-edit hidden">Edit</button>
+        </div>
+        <div class="exercise-editor">
+          <div class="sets-table"></div>
+          <button class="add-set-btn">+ Add Set</button>
+          <div class="exercise-actions">
+            <button class="btn-complete">Complete</button>
+          </div>
+        </div>
       `;
+
       row.querySelector('.add-set-btn').addEventListener('click', () => addSetRow(row));
+
+      row.querySelector('.btn-complete').addEventListener('click', () => {
+        showSummary(row);
+        row.querySelector('.btn-edit').classList.remove('hidden');
+      });
+
+      row.querySelector('.btn-edit').addEventListener('click', () => {
+        row.querySelector('.exercise-summary')?.classList.add('hidden');
+        row.querySelector('.exercise-editor').classList.remove('hidden');
+        row.querySelector('.btn-edit').classList.add('hidden');
+      });
+
       addSetRow(row);
       list.appendChild(row);
     }
@@ -568,17 +703,7 @@
       if (!rows.length) return;
 
       const exercises = Array.from(rows).map(row => {
-        const sets = Array.from(row.querySelectorAll('.set-row')).map(s => {
-          const repsChip   = s.querySelector('.reps-chips .chip.selected');
-          const weightChip = s.querySelector('.weight-chips .chip.selected');
-          const restChip   = s.querySelector('.rest-chips .chip.selected');
-          const typeInputs = s.querySelectorAll('.chip-type-input');
-          return {
-            reps:   repsChip   ? repsChip.dataset.reps     : typeInputs[0].value,
-            weight: weightChip ? weightChip.dataset.weight : typeInputs[1].value,
-            rest:   restChip   ? restChip.dataset.rest     : typeInputs[2].value,
-          };
-        });
+        const sets = readSets(row);
         return { name: row.dataset.name, sets };
       });
 
