@@ -119,62 +119,47 @@
       gap: 10px;
     }
 
-    .sets-header {
-      display: grid;
-      grid-template-columns: 32px 1fr 1fr 1fr;
-      gap: 8px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #444;
-      padding: 0 2px 6px;
-      border-bottom: 1px solid #1e1e1e;
-    }
-
     .set-row {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding-bottom: 10px;
+      padding-bottom: 12px;
       border-bottom: 1px solid #1a1a1a;
     }
 
     .set-row:last-child { border-bottom: none; padding-bottom: 0; }
 
     .set-row-top {
-      display: grid;
-      grid-template-columns: 32px 1fr 1fr;
-      gap: 8px;
+      display: flex;
       align-items: center;
+      gap: 10px;
     }
 
     .set-num {
       font-size: 13px;
-      color: #555;
+      color: #444;
+      min-width: 32px;
       text-align: center;
+      flex-shrink: 0;
     }
 
-    .set-input {
-      background: #1e1e1e;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 14px;
-      font-family: inherit;
-      padding: 8px 6px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .set-input:focus { outline: none; border-color: #444; }
-
-    /* Reps chips */
-    .reps-chips {
+    /* Chips */
+    .chip-row {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       padding-left: 40px;
     }
+
+    .chip-row.scrollable {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .chip-row.scrollable::-webkit-scrollbar { display: none; }
 
     .chip {
       background: #1e1e1e;
@@ -183,12 +168,15 @@
       color: #666;
       font-size: 13px;
       font-family: inherit;
-      width: 34px;
+      min-width: 34px;
       height: 34px;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
       transition: background 0.1s, color 0.1s, border-color 0.1s;
     }
 
@@ -199,6 +187,15 @@
     }
 
     .chip:active { opacity: 0.7; }
+
+    .chip-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #333;
+      padding-left: 40px;
+      margin-bottom: -2px;
+    }
 
     .add-set-btn {
       background: none;
@@ -459,13 +456,7 @@
       row.dataset.name = name;
       row.innerHTML = `
         <div class="exercise-row-name">${name}</div>
-        <div class="sets-table">
-          <div class="sets-header">
-            <span style="text-align:center">Set</span>
-            <span style="text-align:center">kg</span>
-            <span style="text-align:center">Rest</span>
-          </div>
-        </div>
+        <div class="sets-table"></div>
         <button class="add-set-btn">+ Add Set</button>
       `;
       row.querySelector('.add-set-btn').addEventListener('click', () => addSetRow(row));
@@ -473,30 +464,56 @@
       list.appendChild(row);
     }
 
+    const WEIGHT_CHIPS = [];
+    for (let w = 2.5; w <= 100; w += 2.5) WEIGHT_CHIPS.push(w % 1 === 0 ? w : w.toFixed(1));
+
+    const REST_CHIPS = [
+      { label: '30s', value: 30 },
+      { label: '45s', value: 45 },
+      { label: '1m',  value: 60 },
+      { label: '90s', value: 90 },
+      { label: '2m',  value: 120 },
+      { label: '3m',  value: 180 },
+    ];
+
+    function makeChips(items, dataKey, cls = '') {
+      return items.map(item => {
+        const label = item.label ?? item;
+        const val   = item.value ?? item;
+        return `<div class="chip ${cls}" data-${dataKey}="${val}">${label}</div>`;
+      }).join('');
+    }
+
+    function bindChips(container, dataKey) {
+      container.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+        });
+      });
+    }
+
     function addSetRow(exerciseRow) {
       const table = exerciseRow.querySelector('.sets-table');
       const setNum = table.querySelectorAll('.set-row').length + 1;
-
-      const chips = Array.from({length: 15}, (_, i) => i + 1)
-        .map(n => `<div class="chip" data-reps="${n}">${n}</div>`).join('');
 
       const setRow = document.createElement('div');
       setRow.className = 'set-row';
       setRow.innerHTML = `
         <div class="set-row-top">
           <span class="set-num">${setNum}</span>
-          <input class="set-input" type="number" placeholder="kg" min="0" step="0.5" />
-          <input class="set-input" type="number" placeholder="sec" min="0" />
         </div>
-        <div class="reps-chips">${chips}</div>
+        <div class="chip-label">Reps</div>
+        <div class="chip-row reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
+        <div class="chip-label">Weight (kg)</div>
+        <div class="chip-row scrollable weight-chips">${makeChips(WEIGHT_CHIPS, 'weight')}</div>
+        <div class="chip-label">Rest</div>
+        <div class="chip-row rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
       `;
 
-      setRow.querySelectorAll('.chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          setRow.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-          chip.classList.add('selected');
-        });
-      });
+      bindChips(setRow.querySelector('.reps-chips'), 'reps');
+      bindChips(setRow.querySelector('.weight-chips'), 'weight');
+      bindChips(setRow.querySelector('.rest-chips'), 'rest');
 
       table.appendChild(setRow);
     }
@@ -507,9 +524,14 @@
 
       const exercises = Array.from(rows).map(row => {
         const sets = Array.from(row.querySelectorAll('.set-row')).map(s => {
-          const inputs = s.querySelectorAll('input');
-          const selected = s.querySelector('.chip.selected');
-          return { reps: selected ? selected.dataset.reps : '', weight: inputs[0].value, rest: inputs[1].value };
+          const repsChip   = s.querySelector('.reps-chips .chip.selected');
+          const weightChip = s.querySelector('.weight-chips .chip.selected');
+          const restChip   = s.querySelector('.rest-chips .chip.selected');
+          return {
+            reps:   repsChip   ? repsChip.dataset.reps   : '',
+            weight: weightChip ? weightChip.dataset.weight : '',
+            rest:   restChip   ? restChip.dataset.rest   : '',
+          };
         });
         return { name: row.dataset.name, sets };
       });
