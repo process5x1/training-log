@@ -260,6 +260,39 @@
 
     .btn-complete:active { opacity: 0.8; }
 
+    /* Equipment chips */
+    .equipment-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .equipment-row::-webkit-scrollbar { display: none; }
+
+    .equip-chip {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      color: #555;
+      font-size: 12px;
+      font-family: inherit;
+      padding: 5px 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s, border-color 0.1s;
+    }
+
+    .equip-chip.selected {
+      background: #1a1a2e;
+      border-color: #4a9eff;
+      color: #4a9eff;
+    }
+
+    .equip-chip:active { opacity: 0.7; }
+
     /* Summary view */
     .exercise-summary { display: flex; flex-direction: column; gap: 6px; }
 
@@ -594,6 +627,7 @@
         row.appendChild(summaryEl);
       }
 
+      const equip = row.dataset.equipment ? ` — ${row.dataset.equipment}` : '';
       const lines = sets.map(s => {
         const parts = [];
         if (s.reps)   parts.push(`${s.reps} reps`);
@@ -614,7 +648,7 @@
         </div>`;
 
       summaryEl.querySelector('.btn-copy').addEventListener('click', () => {
-        const text = `${row.dataset.name}\n${lines.join('\n')}`;
+        const text = `${row.dataset.name}${equip}\n${lines.join('\n')}`;
         navigator.clipboard.writeText(text).then(() => {
           const btn = summaryEl.querySelector('.btn-copy');
           btn.textContent = 'Copied';
@@ -626,16 +660,24 @@
       summaryEl.classList.remove('hidden');
     }
 
+    const EQUIPMENT = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight', 'Kettlebell', 'EZ Bar', 'Smith Machine', 'Resistance Band', 'Trap Bar'];
+
     function addExerciseRow(name) {
       const list = document.getElementById('exerciseList');
       const row = document.createElement('div');
       row.className = 'exercise-row';
       row.dataset.name = name;
+
+      const equipChips = EQUIPMENT.map(e =>
+        `<div class="equip-chip" data-equip="${e}">${e}</div>`
+      ).join('');
+
       row.innerHTML = `
         <div class="exercise-row-header">
           <div class="exercise-row-name">${name}</div>
           <button class="btn-edit hidden">Edit</button>
         </div>
+        <div class="equipment-row">${equipChips}</div>
         <div class="exercise-editor">
           <div class="sets-table"></div>
           <button class="add-set-btn">+ Add Set</button>
@@ -644,6 +686,14 @@
           </div>
         </div>
       `;
+
+      row.querySelectorAll('.equip-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          row.querySelectorAll('.equip-chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+          row.dataset.equipment = chip.dataset.equip;
+        });
+      });
 
       row.querySelector('.add-set-btn').addEventListener('click', () => addSetRow(row));
 
@@ -746,7 +796,7 @@
 
       const exercises = Array.from(rows).map(row => {
         const sets = readSets(row);
-        return { name: row.dataset.name, sets };
+        return { name: row.dataset.name, equipment: row.dataset.equipment || '', sets };
       });
 
       const session = { date: new Date().toISOString(), exercises };
