@@ -261,6 +261,28 @@
     /* Summary view */
     .exercise-summary { display: flex; flex-direction: column; gap: 6px; }
 
+    .summary-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .btn-copy {
+      background: none;
+      border: none;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #444;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .btn-copy:active { color: #aaa; }
+    .btn-copy.copied { color: #3a3; }
+
     .summary-row {
       display: flex;
       align-items: center;
@@ -570,16 +592,34 @@
         row.appendChild(summaryEl);
       }
 
-      summaryEl.innerHTML = sets.map(s => {
+      const lines = sets.map(s => {
         const parts = [];
-        if (s.reps)   parts.push(`<span class="summary-val">${s.reps} reps</span>`);
-        if (s.weight) parts.push(`<span class="summary-val">${s.weight} kg</span>`);
-        if (s.rest)   parts.push(`<span class="summary-val">${s.rest}s rest</span>`);
+        if (s.reps)   parts.push(`${s.reps} reps`);
+        if (s.weight) parts.push(`${s.weight} kg`);
+        if (s.rest)   parts.push(`${s.rest}s rest`);
+        return `Set ${s.num}  ·  ${parts.join('  ·  ')}`;
+      });
+
+      summaryEl.innerHTML = lines.map(line => {
+        const [setNum, ...rest] = line.split('  ·  ');
         return `<div class="summary-row">
-          <span class="summary-set-num">Set ${s.num}</span>
-          ${parts.join('<span class="summary-dot"> · </span>')}
+          <span class="summary-set-num">${setNum}</span>
+          ${rest.map(p => `<span class="summary-val">${p}</span>`).join('<span class="summary-dot"> · </span>')}
         </div>`;
-      }).join('');
+      }).join('') + `
+        <div class="summary-footer">
+          <button class="btn-copy">Copy</button>
+        </div>`;
+
+      summaryEl.querySelector('.btn-copy').addEventListener('click', () => {
+        const text = `${row.dataset.name}\n${lines.join('\n')}`;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = summaryEl.querySelector('.btn-copy');
+          btn.textContent = 'Copied';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+        });
+      });
 
       summaryEl.classList.remove('hidden');
     }
