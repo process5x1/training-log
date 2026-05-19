@@ -112,27 +112,40 @@
       margin-bottom: 4px;
     }
 
-    /* 4-column header + rows */
+    /* Sets table */
     .sets-table {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .sets-header, .set-row {
-      display: grid;
-      grid-template-columns: 36px 1fr 1fr 1fr;
-      gap: 8px;
-      align-items: center;
+      gap: 10px;
     }
 
     .sets-header {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr 1fr;
+      gap: 8px;
       font-size: 10px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: #444;
-      padding: 0 2px 4px;
+      padding: 0 2px 6px;
       border-bottom: 1px solid #1e1e1e;
+    }
+
+    .set-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .set-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .set-row-top {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr;
+      gap: 8px;
+      align-items: center;
     }
 
     .set-num {
@@ -154,6 +167,38 @@
     }
 
     .set-input:focus { outline: none; border-color: #444; }
+
+    /* Reps chips */
+    .reps-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-left: 40px;
+    }
+
+    .chip {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      color: #666;
+      font-size: 13px;
+      font-family: inherit;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s, border-color 0.1s;
+    }
+
+    .chip.selected {
+      background: #fff;
+      border-color: #fff;
+      color: #000;
+    }
+
+    .chip:active { opacity: 0.7; }
 
     .add-set-btn {
       background: none;
@@ -417,8 +462,7 @@
         <div class="sets-table">
           <div class="sets-header">
             <span style="text-align:center">Set</span>
-            <span style="text-align:center">Reps</span>
-            <span style="text-align:center">Weight</span>
+            <span style="text-align:center">kg</span>
             <span style="text-align:center">Rest</span>
           </div>
         </div>
@@ -432,14 +476,28 @@
     function addSetRow(exerciseRow) {
       const table = exerciseRow.querySelector('.sets-table');
       const setNum = table.querySelectorAll('.set-row').length + 1;
+
+      const chips = Array.from({length: 15}, (_, i) => i + 1)
+        .map(n => `<div class="chip" data-reps="${n}">${n}</div>`).join('');
+
       const setRow = document.createElement('div');
       setRow.className = 'set-row';
       setRow.innerHTML = `
-        <span class="set-num">${setNum}</span>
-        <input class="set-input" type="number" placeholder="reps" min="0" />
-        <input class="set-input" type="number" placeholder="kg" min="0" step="0.5" />
-        <input class="set-input" type="number" placeholder="sec" min="0" />
+        <div class="set-row-top">
+          <span class="set-num">${setNum}</span>
+          <input class="set-input" type="number" placeholder="kg" min="0" step="0.5" />
+          <input class="set-input" type="number" placeholder="sec" min="0" />
+        </div>
+        <div class="reps-chips">${chips}</div>
       `;
+
+      setRow.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          setRow.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+        });
+      });
+
       table.appendChild(setRow);
     }
 
@@ -450,7 +508,8 @@
       const exercises = Array.from(rows).map(row => {
         const sets = Array.from(row.querySelectorAll('.set-row')).map(s => {
           const inputs = s.querySelectorAll('input');
-          return { reps: inputs[0].value, weight: inputs[1].value, rest: inputs[2].value };
+          const selected = s.querySelector('.chip.selected');
+          return { reps: selected ? selected.dataset.reps : '', weight: inputs[0].value, rest: inputs[1].value };
         });
         return { name: row.dataset.name, sets };
       });
