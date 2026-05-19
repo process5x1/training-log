@@ -460,6 +460,116 @@
 
     .btn-ghost:active { background: #1e1e1e; }
 
+    /* ── Load screen ── */
+    #loadScreen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      min-height: 100dvh;
+      padding: 88px 24px 48px;
+    }
+
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .session-card {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .session-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .session-date {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .session-meta {
+      font-size: 12px;
+      color: #444;
+      margin-top: 2px;
+    }
+
+    .session-chevron {
+      font-size: 14px;
+      color: #333;
+      transition: transform 0.2s;
+    }
+
+    .session-card.open .session-chevron { transform: rotate(90deg); }
+
+    .session-detail {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 0 20px 16px;
+      border-top: 1px solid #1e1e1e;
+    }
+
+    .session-card.open .session-detail { display: flex; }
+
+    .detail-exercise {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 12px;
+    }
+
+    .detail-exercise-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ddd;
+    }
+
+    .detail-equip {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #4a9eff;
+      margin-bottom: 4px;
+    }
+
+    .detail-set-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .detail-set-num {
+      min-width: 36px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #333;
+    }
+
+    .detail-val { color: #aaa; }
+    .detail-dot { color: #2a2a2a; }
+
+    .empty-state {
+      font-size: 13px;
+      color: #333;
+      text-align: center;
+      padding: 48px 0;
+      letter-spacing: 0.05em;
+    }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -496,6 +606,13 @@
     </div>
 
     <button class="btn-ghost" id="saveSessionBtn">Save Session</button>
+  </div>
+
+  <!-- Load Existing -->
+  <div id="loadScreen">
+    <button class="back" id="loadBack">← Back</button>
+    <div class="session-header">Past Sessions</div>
+    <div class="session-list" id="sessionList"></div>
   </div>
 
   <script>
@@ -597,8 +714,71 @@
     });
 
     document.getElementById('loadSession').addEventListener('click', () => {
-      // TODO: load past sessions
+      document.getElementById('homeScreen').style.display = 'none';
+      document.getElementById('loadScreen').style.display = 'flex';
+      renderSessionList();
     });
+
+    document.getElementById('loadBack').addEventListener('click', () => {
+      document.getElementById('loadScreen').style.display = 'none';
+      document.getElementById('homeScreen').style.display = 'flex';
+    });
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function renderSessionList() {
+      const container = document.getElementById('sessionList');
+      const all = JSON.parse(localStorage.getItem(EXERCISES_KEY) || '[]').slice().reverse();
+
+      if (!all.length) {
+        container.innerHTML = '<div class="empty-state">No sessions saved yet</div>';
+        return;
+      }
+
+      container.innerHTML = all.map((session, i) => {
+        const exerciseCount = session.exercises.length;
+        const setCount = session.exercises.reduce((n, e) => n + e.sets.length, 0);
+
+        const detail = session.exercises.map(ex => {
+          const equipLine = ex.equipment ? `<div class="detail-equip">${ex.equipment}</div>` : '';
+          const setRows = ex.sets.map((s, si) => {
+            const parts = [];
+            if (s.reps)   parts.push(`<span class="detail-val">${s.reps} reps</span>`);
+            if (s.weight) parts.push(`<span class="detail-val">${s.weight} kg</span>`);
+            if (s.rest)   parts.push(`<span class="detail-val">${s.rest}s</span>`);
+            return `<div class="detail-set-row">
+              <span class="detail-set-num">Set ${si + 1}</span>
+              ${parts.join('<span class="detail-dot"> · </span>')}
+            </div>`;
+          }).join('');
+          return `<div class="detail-exercise">
+            <div class="detail-exercise-name">${ex.name}</div>
+            ${equipLine}
+            ${setRows}
+          </div>`;
+        }).join('');
+
+        return `<div class="session-card" data-index="${i}">
+          <div class="session-card-header">
+            <div>
+              <div class="session-date">${formatDate(session.date)}</div>
+              <div class="session-meta">${exerciseCount} exercise${exerciseCount !== 1 ? 's' : ''} · ${setCount} sets</div>
+            </div>
+            <span class="session-chevron">›</span>
+          </div>
+          <div class="session-detail">${detail}</div>
+        </div>`;
+      }).join('');
+
+      container.querySelectorAll('.session-card').forEach(card => {
+        card.querySelector('.session-card-header').addEventListener('click', () => {
+          card.classList.toggle('open');
+        });
+      });
+    }
 
     function readSets(row) {
       return Array.from(row.querySelectorAll('.set-row')).map((s, i) => {
