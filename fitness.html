@@ -428,6 +428,9 @@
       color: #444;
     }
 
+    .search-result-custom { border-top: 1px solid #1e1e1e; }
+    .search-result-custom .result-group { color: #4a9eff; }
+
     .btn-primary {
       background: #fff;
       color: #000;
@@ -675,14 +678,26 @@
       if (!q) { searchResults.classList.add('hidden'); return; }
 
       const matches = EXERCISE_DB.filter(e => e.name.toLowerCase().includes(q)).slice(0, 8);
-      if (!matches.length) { searchResults.classList.add('hidden'); return; }
+      const exactMatch = EXERCISE_DB.some(e => e.name.toLowerCase() === q);
+      const typedName = searchInput.value.trim();
 
-      searchResults.innerHTML = matches.map(e => `
+      if (!matches.length && !typedName) { searchResults.classList.add('hidden'); return; }
+
+      const matchHTML = matches.map(e => `
         <div class="search-result-item" data-name="${e.name}">
           <span>${e.name}</span>
           <span class="result-group">${e.group}</span>
         </div>
       `).join('');
+
+      const customHTML = !exactMatch && typedName ? `
+        <div class="search-result-item search-result-custom" data-name="${typedName}">
+          <span>Add "<strong>${typedName}</strong>"</span>
+          <span class="result-group">Custom</span>
+        </div>
+      ` : '';
+
+      searchResults.innerHTML = matchHTML + customHTML;
 
       searchResults.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -693,6 +708,14 @@
       });
 
       searchResults.classList.remove('hidden');
+
+      searchInput.onkeydown = e => {
+        if (e.key === 'Enter' && typedName) {
+          addExerciseRow(typedName);
+          searchInput.value = '';
+          searchResults.classList.add('hidden');
+        }
+      };
     });
 
     document.addEventListener('click', e => {
