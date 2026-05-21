@@ -119,37 +119,12 @@
       gap: 0;
     }
 
-    .sets-col-header {
-      display: grid;
-      grid-template-columns: 28px 1fr;
-      gap: 0 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #1e1e1e;
-      margin-bottom: 2px;
-    }
-
-    .sets-col-labels {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .col-label {
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #2e2e2e;
-      height: 34px;
-      display: flex;
-      align-items: center;
-    }
-
     .set-row {
       display: grid;
-      grid-template-columns: 28px 1fr;
+      grid-template-columns: 24px 1fr;
       gap: 0 10px;
       align-items: start;
-      padding: 10px 0;
+      padding: 12px 0;
       border-bottom: 1px solid #141414;
     }
 
@@ -159,13 +134,23 @@
       font-size: 12px;
       color: #444;
       text-align: center;
-      padding-top: 8px;
+      padding-top: 9px;
     }
 
     .set-chip-cols {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+    }
+
+    .chip-row-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #333;
+      width: 24px;
+      flex-shrink: 0;
+      text-align: center;
     }
 
     /* Chips */
@@ -893,16 +878,7 @@
         </div>
         <div class="equipment-row">${equipChips}</div>
         <div class="exercise-editor">
-          <div class="sets-table">
-            <div class="sets-col-header">
-              <span></span>
-              <div class="sets-col-labels">
-                <span class="col-label">Reps</span>
-                <span class="col-label">Weight</span>
-                <span class="col-label">Rest</span>
-              </div>
-            </div>
-          </div>
+          <div class="sets-table"></div>
           <button class="add-set-btn">+ Add Set</button>
           <div class="exercise-actions">
             <button class="btn-complete">Complete</button>
@@ -988,14 +964,17 @@
         <span class="set-num">${setNum}</span>
         <div class="set-chip-cols">
           <div class="chip-row-wrap">
+            <span class="chip-row-label">Reps</span>
             <input class="chip-type-input" type="number" min="1" placeholder="—" />
             <div class="chip-row reps-chips">${makeChips(Array.from({length:15},(_,i)=>i+1), 'reps')}</div>
           </div>
           <div class="chip-row-wrap">
+            <span class="chip-row-label">kg</span>
             <input class="chip-type-input" type="number" min="0" step="0.5" placeholder="—" />
             <div class="chip-row weight-chips">${makeChips(WEIGHT_CHIPS, 'weight')}</div>
           </div>
           <div class="chip-row-wrap">
+            <span class="chip-row-label">Rest</span>
             <input class="chip-type-input" type="number" min="0" placeholder="—" />
             <div class="chip-row rest-chips">${makeChips(REST_CHIPS, 'rest')}</div>
           </div>
