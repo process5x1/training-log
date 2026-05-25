@@ -1150,6 +1150,8 @@
       e.target.value = '';
 
       const { apiKey } = getSettings();
+      if (!apiKey) { alert('Add your Claude API key in Settings first.'); return; }
+
       showScreen('searchScreen');
       document.getElementById('searchInput').value = '';
       document.getElementById('searchResults').classList.add('hidden');
@@ -1157,19 +1159,31 @@
       document.getElementById('manualEntry').classList.add('hidden');
 
       const statusEl = document.createElement('div');
-      statusEl.style.cssText = 'width:100%;max-width:380px;font-size:13px;color:#64748b;padding:16px 0';
+      statusEl.className = 'ai-result loading';
+      statusEl.style.cssText = 'width:100%;max-width:380px;margin-top:16px';
       statusEl.textContent = 'Reading label…';
       document.getElementById('searchScreen').appendChild(statusEl);
 
       try {
+        // Resize image to max 1024px to keep payload small
         const base64 = await new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload = () => res(reader.result.split(',')[1]);
-          reader.onerror = rej;
-          reader.readAsDataURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const max = 1024;
+            let w = img.width, h = img.height;
+            if (w > max || h > max) {
+              if (w > h) { h = Math.round(h * max / w); w = max; }
+              else       { w = Math.round(w * max / h); h = max; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+          };
+          img.onerror = rej;
+          img.src = URL.createObjectURL(file);
         });
 
-        const mediaType = file.type || 'image/jpeg';
         const resp = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -1184,28 +1198,37 @@
             messages: [{
               role: 'user',
               content: [
-                { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-                { type: 'text', text: 'This is a nutrition label. Extract the PER 100g values. Return ONLY valid JSON with no extra text: {"name":"product name or Food","protein":0,"carbs":0,"fat":0}. Use numbers only, no units.' }
+                { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+                { type: 'text', text: 'This is a nutrition label. Find the PER 100g column and extract the values. Return ONLY valid JSON, nothing else: {"name":"product name","protein":0,"carbs":0,"fat":0}. Numbers only, no units, no explanation.' }
               ]
             }]
           })
         });
 
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${resp.status}`);
+        }
+
+        const data   = await resp.json();
+        const text   = data.content[0].text;
+        const match  = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Could not parse response');
+        const parsed = JSON.parse(match[0]);
+
         statusEl.remove();
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        const parsed = JSON.parse(data.content[0].text.match(/\{[\s\S]*\}/)[0]);
         selectedFood = {
-          name: parsed.name || 'Scanned food',
-          protein100: parsed.protein || 0,
-          carbs100: parsed.carbs || 0,
-          fat100: parsed.fat || 0,
-          source: 'Scanned label'
+          name:       parsed.name     || 'Scanned food',
+          protein100: parsed.protein  || 0,
+          carbs100:   parsed.carbs    || 0,
+          fat100:     parsed.fat      || 0,
+          source:     'Scanned label'
         };
         showFoodDetail();
       } catch(err) {
-        statusEl.textContent = 'Could not read label — try manual entry instead.';
-        statusEl.style.color = '#dc2626';
+        statusEl.className = 'ai-result error';
+        statusEl.style.cssText = 'width:100%;max-width:380px;margin-top:16px';
+        statusEl.textContent = 'Could not read label: ' + err.message + '. Try manual entry instead.';
       }
     });
 
