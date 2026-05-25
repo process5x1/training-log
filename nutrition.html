@@ -412,6 +412,84 @@
     .target-input:focus { outline: none; border-color: #94a3b8; }
     .target-unit { font-size: 12px; color: #475569; }
 
+    /* Settings sections */
+    .settings-section {
+      width: 100%;
+      max-width: 380px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 24px;
+      margin-top: 24px;
+    }
+
+    .settings-section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .profile-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 14px;
+    }
+
+    .profile-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .profile-field .settings-label { margin-bottom: 0; }
+
+    .profile-field-inner {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .profile-field .target-input { width: 100%; }
+
+    .settings-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 14px;
+    }
+
+    .settings-chip {
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+    }
+
+    .settings-chip.selected {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #fff;
+    }
+
+    .calc-note {
+      font-size: 12px;
+      color: #94a3b8;
+      width: 100%;
+      max-width: 380px;
+      margin-top: -8px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
     /* Date nav */
     .date-nav {
       display: flex;
@@ -604,16 +682,71 @@
     <button class="back-btn" id="settingsBack">← Back</button>
     <div class="screen-title">Settings</div>
 
-    <div class="settings-label">Claude API Key</div>
+    <!-- API Key -->
+    <div class="settings-section-title" style="width:100%;max-width:380px">API Key</div>
     <input class="text-input" id="apiKeyInput" type="password" placeholder="sk-ant-…" />
-    <div class="settings-note">Get a key at console.anthropic.com — stored only in your browser, never uploaded.</div>
+    <div class="settings-note">Get a key at console.anthropic.com — stored only in your browser, never sent anywhere.</div>
 
-    <div class="gap-lg"></div>
+    <!-- Personal Profile -->
+    <div class="settings-section">
+      <div class="settings-section-title">Personal Profile</div>
 
-    <div class="settings-label">Daily Targets</div>
-    <div class="target-row"><label>Protein</label><input class="target-input" id="targetProtein" type="number" value="150" /><span class="target-unit">g</span></div>
-    <div class="target-row"><label>Carbs</label>  <input class="target-input" id="targetCarbs"   type="number" value="200" /><span class="target-unit">g</span></div>
-    <div class="target-row"><label>Fat</label>    <input class="target-input" id="targetFat"     type="number" value="65"  /><span class="target-unit">g</span></div>
+      <div class="profile-row">
+        <div class="profile-field">
+          <div class="settings-label">Weight</div>
+          <div class="profile-field-inner">
+            <input class="target-input" id="profileWeight" type="number" min="30" max="300" placeholder="70" />
+            <span class="target-unit">kg</span>
+          </div>
+        </div>
+        <div class="profile-field">
+          <div class="settings-label">Height</div>
+          <div class="profile-field-inner">
+            <input class="target-input" id="profileHeight" type="number" min="100" max="250" placeholder="175" />
+            <span class="target-unit">cm</span>
+          </div>
+        </div>
+        <div class="profile-field">
+          <div class="settings-label">Age</div>
+          <div class="profile-field-inner">
+            <input class="target-input" id="profileAge" type="number" min="10" max="100" placeholder="25" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-label">Sex</div>
+      <div class="settings-chips">
+        <button class="settings-chip" data-group="sex" data-val="male">Male</button>
+        <button class="settings-chip" data-group="sex" data-val="female">Female</button>
+      </div>
+
+      <div class="settings-label">Activity</div>
+      <div class="settings-chips">
+        <button class="settings-chip" data-group="activity" data-val="1.2">Sedentary</button>
+        <button class="settings-chip" data-group="activity" data-val="1.375">Light</button>
+        <button class="settings-chip" data-group="activity" data-val="1.55">Moderate</button>
+        <button class="settings-chip" data-group="activity" data-val="1.725">Active</button>
+        <button class="settings-chip" data-group="activity" data-val="1.9">Very Active</button>
+      </div>
+
+      <div class="settings-label">Goal</div>
+      <div class="settings-chips">
+        <button class="settings-chip" data-group="goal" data-val="-300">Cut</button>
+        <button class="settings-chip" data-group="goal" data-val="0">Maintain</button>
+        <button class="settings-chip" data-group="goal" data-val="300">Bulk</button>
+      </div>
+    </div>
+
+    <!-- Daily Targets -->
+    <div class="settings-section">
+      <div class="settings-section-title">Daily Targets</div>
+      <div class="calc-note">Set manually or tap Calculate to fill from your profile.</div>
+      <div class="target-row"><label>Protein</label><input class="target-input" id="targetProtein" type="number" value="150" /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Carbs</label>  <input class="target-input" id="targetCarbs"   type="number" value="200" /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Fat</label>    <input class="target-input" id="targetFat"     type="number" value="65"  /><span class="target-unit">g</span></div>
+      <div class="gap"></div>
+      <button class="btn-ghost" id="calcTargetsBtn" style="max-width:380px">Calculate from Profile</button>
+    </div>
 
     <div class="gap-lg"></div>
     <button class="btn-primary" id="saveSettings">Save</button>
@@ -987,12 +1120,61 @@
     }
 
     // ── Settings ──
+    function setChip(group, val) {
+      document.querySelectorAll(`.settings-chip[data-group="${group}"]`).forEach(c => {
+        c.classList.toggle('selected', c.dataset.val === String(val));
+      });
+    }
+
+    document.querySelectorAll('.settings-chip').forEach(chip => {
+      chip.addEventListener('click', () => setChip(chip.dataset.group, chip.dataset.val));
+    });
+
+    function getChip(group) {
+      return document.querySelector(`.settings-chip[data-group="${group}"].selected`)?.dataset.val || null;
+    }
+
+    function calcTargetsFromProfile() {
+      const weight   = parseFloat(document.getElementById('profileWeight').value);
+      const height   = parseFloat(document.getElementById('profileHeight').value);
+      const age      = parseFloat(document.getElementById('profileAge').value);
+      const sex      = getChip('sex');
+      const activity = parseFloat(getChip('activity') || '1.55');
+      const goal     = parseInt(getChip('goal') || '0');
+
+      if (!weight || !height || !age || !sex) {
+        alert('Fill in weight, height, age and sex first.');
+        return;
+      }
+
+      const bmr  = sex === 'male'
+        ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+        : (10 * weight) + (6.25 * height) - (5 * age) - 161;
+      const tdee = Math.round(bmr * activity) + goal;
+
+      const protein = Math.round(weight * 2);
+      const fat     = Math.round((tdee * 0.25) / 9);
+      const carbs   = Math.max(0, Math.round((tdee - protein * 4 - fat * 9) / 4));
+
+      document.getElementById('targetProtein').value = protein;
+      document.getElementById('targetCarbs').value   = carbs;
+      document.getElementById('targetFat').value     = fat;
+    }
+
+    document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsFromProfile);
+
     document.getElementById('openSettings').addEventListener('click', () => {
       const s = getSettings();
-      document.getElementById('apiKeyInput').value   = s.apiKey   || '';
-      document.getElementById('targetProtein').value = s.protein  || 150;
-      document.getElementById('targetCarbs').value   = s.carbs    || 200;
-      document.getElementById('targetFat').value     = s.fat      || 65;
+      document.getElementById('apiKeyInput').value   = s.apiKey  || '';
+      document.getElementById('targetProtein').value = s.protein || 150;
+      document.getElementById('targetCarbs').value   = s.carbs   || 200;
+      document.getElementById('targetFat').value     = s.fat     || 65;
+      document.getElementById('profileWeight').value = s.weight  || '';
+      document.getElementById('profileHeight').value = s.height  || '';
+      document.getElementById('profileAge').value    = s.age     || '';
+      if (s.sex)      setChip('sex',      s.sex);
+      if (s.activity) setChip('activity', s.activity);
+      if (s.goal !== undefined) setChip('goal', s.goal);
       showScreen('settingsScreen');
     });
 
@@ -1000,10 +1182,16 @@
 
     document.getElementById('saveSettings').addEventListener('click', () => {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-        apiKey:  document.getElementById('apiKeyInput').value.trim(),
-        protein: +document.getElementById('targetProtein').value || 150,
-        carbs:   +document.getElementById('targetCarbs').value   || 200,
-        fat:     +document.getElementById('targetFat').value     || 65,
+        apiKey:   document.getElementById('apiKeyInput').value.trim(),
+        protein:  +document.getElementById('targetProtein').value || 150,
+        carbs:    +document.getElementById('targetCarbs').value   || 200,
+        fat:      +document.getElementById('targetFat').value     || 65,
+        weight:   +document.getElementById('profileWeight').value || 0,
+        height:   +document.getElementById('profileHeight').value || 0,
+        age:      +document.getElementById('profileAge').value    || 0,
+        sex:      getChip('sex')      || '',
+        activity: getChip('activity') || '1.55',
+        goal:     getChip('goal')     || '0',
       }));
       showScreen('homeScreen');
       renderHome();
