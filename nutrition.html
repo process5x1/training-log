@@ -948,9 +948,29 @@
       resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
       resultsEl.classList.remove('hidden');
       try {
-        const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
-        const data = await res.json();
-        const foods = (data.foods || []).slice(0, 8);
+        let foods = [];
+        try {
+          const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)`);
+          const data = await res.json();
+          foods = (data.foods || []).slice(0, 8);
+        } catch(_) {}
+
+        // Fallback to Open Food Facts text search if USDA returns nothing
+        if (!foods.length) {
+          try {
+            const res2 = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,nutriments`);
+            const data2 = await res2.json();
+            foods = (data2.products || []).filter(p => p.product_name).slice(0, 8).map(p => ({
+              description: p.product_name,
+              foodNutrients: [
+                { nutrientNumber: 203, nutrientName: 'Protein',         value: p.nutriments?.proteins_100g   || 0 },
+                { nutrientNumber: 205, nutrientName: 'Carbohydrate',    value: p.nutriments?.carbohydrates_100g || 0 },
+                { nutrientNumber: 204, nutrientName: 'Total lipid (fat)', value: p.nutriments?.fat_100g        || 0 },
+              ],
+              _source: 'Open Food Facts'
+            }));
+          } catch(_) {}
+        }
 
         // Handle both name-based and number-based nutrient formats
         function getNutrient(nutrients, nameFragment, number) {
@@ -990,7 +1010,7 @@
               protein100: getNutrient(nutrients, 'protein', 203),
               carbs100:   getNutrient(nutrients, 'carbohydrate', 205),
               fat100:     getNutrient(nutrients, 'total lipid', 204),
-              source:     'USDA Food Database'
+              source:     food._source || 'USDA Food Database'
             };
             resultsEl.classList.add('hidden');
             showFoodDetail();
@@ -1181,24 +1201,36 @@
       document.getElementById('searchScreen').appendChild(statusEl);
 
       try {
-        // Resize image to max 1024px to keep payload small
-        const base64 = await new Promise((res, rej) => {
-          const img = new Image();
-          img.onload = () => {
-            const max = 1024;
-            let w = img.width, h = img.height;
-            if (w > max || h > max) {
-              if (w > h) { h = Math.round(h * max / w); w = max; }
-              else       { w = Math.round(w * max / h); h = max; }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
-          };
-          img.onerror = rej;
-          img.src = URL.createObjectURL(file);
+        // Read image as base64, then optionally resize if very large
+        let base64 = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result.split(',')[1]);
+          reader.onerror = rej;
+          reader.readAsDataURL(file);
         });
+
+        // If over ~1.2MB base64, try canvas resize (skip if it fails)
+        if (base64.length > 1_600_000) {
+          try {
+            base64 = await new Promise((res, rej) => {
+              const img = new Image();
+              img.onload = () => {
+                const max = 1200;
+                let w = img.width, h = img.height;
+                if (w > max || h > max) {
+                  if (w > h) { h = Math.round(h * max / w); w = max; }
+                  else       { w = Math.round(w * max / h); h = max; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                res(canvas.toDataURL('image/jpeg', 0.82).split(',')[1]);
+              };
+              img.onerror = rej;
+              img.src = URL.createObjectURL(file);
+            });
+          } catch (_) { /* send original if resize fails */ }
+        }
 
         const resp = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
