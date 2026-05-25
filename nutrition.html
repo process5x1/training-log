@@ -626,6 +626,8 @@
         <button class="btn-ghost" id="openBarcode">Scan Barcode</button>
         <button class="btn-ghost" id="openFridge">My Fridge</button>
       </div>
+      <button class="btn-ghost" id="openLabelScan">Scan Nutrition Label</button>
+      <input type="file" id="labelPhoto" accept="image/*" capture="environment" style="display:none" />
       <button class="btn-blue" id="analyseBtn">Analyse My Day</button>
     </div>
   </div>
@@ -1132,6 +1134,78 @@
       } catch(e) {
         resultEl.className = 'ai-result error';
         resultEl.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    // ── Label scan ──
+    document.getElementById('openLabelScan').addEventListener('click', () => {
+      const { apiKey } = getSettings();
+      if (!apiKey) { alert('Add your Claude API key in Settings first.'); return; }
+      document.getElementById('labelPhoto').click();
+    });
+
+    document.getElementById('labelPhoto').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      e.target.value = '';
+
+      const { apiKey } = getSettings();
+      showScreen('searchScreen');
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResults').classList.add('hidden');
+      document.getElementById('foodDetail').classList.add('hidden');
+      document.getElementById('manualEntry').classList.add('hidden');
+
+      const statusEl = document.createElement('div');
+      statusEl.style.cssText = 'width:100%;max-width:380px;font-size:13px;color:#64748b;padding:16px 0';
+      statusEl.textContent = 'Reading label…';
+      document.getElementById('searchScreen').appendChild(statusEl);
+
+      try {
+        const base64 = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result.split(',')[1]);
+          reader.onerror = rej;
+          reader.readAsDataURL(file);
+        });
+
+        const mediaType = file.type || 'image/jpeg';
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 256,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+                { type: 'text', text: 'This is a nutrition label. Extract the PER 100g values. Return ONLY valid JSON with no extra text: {"name":"product name or Food","protein":0,"carbs":0,"fat":0}. Use numbers only, no units.' }
+              ]
+            }]
+          })
+        });
+
+        statusEl.remove();
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const parsed = JSON.parse(data.content[0].text.match(/\{[\s\S]*\}/)[0]);
+        selectedFood = {
+          name: parsed.name || 'Scanned food',
+          protein100: parsed.protein || 0,
+          carbs100: parsed.carbs || 0,
+          fat100: parsed.fat || 0,
+          source: 'Scanned label'
+        };
+        showFoodDetail();
+      } catch(err) {
+        statusEl.textContent = 'Could not read label — try manual entry instead.';
+        statusEl.style.color = '#dc2626';
       }
     });
 
