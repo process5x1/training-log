@@ -164,9 +164,10 @@
     }
 
     .macro-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
-    .macro-fill.protein { background: #4a9eff; }
-    .macro-fill.carbs   { background: #f59e0b; }
-    .macro-fill.fat     { background: #a78bfa; }
+    .macro-fill.calories { background: #10b981; }
+    .macro-fill.protein  { background: #4a9eff; }
+    .macro-fill.carbs    { background: #f59e0b; }
+    .macro-fill.fat      { background: #a78bfa; }
 
     .macro-val {
       font-size: 12px;
@@ -583,6 +584,11 @@
 
     <div class="macro-bar-wrap">
       <div class="macro-row">
+        <span class="macro-label">Calories</span>
+        <div class="macro-track"><div class="macro-fill calories" id="barCalories" style="width:0%"></div></div>
+        <span class="macro-val" id="valCalories">0 / 2000</span>
+      </div>
+      <div class="macro-row">
         <span class="macro-label">Protein</span>
         <div class="macro-track"><div class="macro-fill protein" id="barProtein" style="width:0%"></div></div>
         <span class="macro-val" id="valProtein">0 / 150g</span>
@@ -731,9 +737,10 @@
 
       <div class="settings-label">Goal</div>
       <div class="settings-chips">
-        <button class="settings-chip" data-group="goal" data-val="-300">Cut</button>
-        <button class="settings-chip" data-group="goal" data-val="0">Maintain</button>
-        <button class="settings-chip" data-group="goal" data-val="300">Bulk</button>
+        <button class="settings-chip" data-group="goal" data-val="fatloss">Fat Loss</button>
+        <button class="settings-chip" data-group="goal" data-val="muscle">Muscle Gain</button>
+        <button class="settings-chip" data-group="goal" data-val="recomp">Fat Loss + Muscle Gain</button>
+        <button class="settings-chip" data-group="goal" data-val="maintain">Maintain</button>
       </div>
     </div>
 
@@ -741,9 +748,10 @@
     <div class="settings-section">
       <div class="settings-section-title">Daily Targets</div>
       <div class="calc-note">Set manually or tap Calculate to fill from your profile.</div>
-      <div class="target-row"><label>Protein</label><input class="target-input" id="targetProtein" type="number" value="150" /><span class="target-unit">g</span></div>
-      <div class="target-row"><label>Carbs</label>  <input class="target-input" id="targetCarbs"   type="number" value="200" /><span class="target-unit">g</span></div>
-      <div class="target-row"><label>Fat</label>    <input class="target-input" id="targetFat"     type="number" value="65"  /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Calories</label><input class="target-input" id="targetCalories" type="number" value="2000" /><span class="target-unit">kcal</span></div>
+      <div class="target-row"><label>Protein</label> <input class="target-input" id="targetProtein"  type="number" value="150"  /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Carbs</label>   <input class="target-input" id="targetCarbs"    type="number" value="200"  /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Fat</label>     <input class="target-input" id="targetFat"      type="number" value="65"   /><span class="target-unit">g</span></div>
       <div class="gap"></div>
       <button class="btn-ghost" id="calcTargetsBtn" style="max-width:380px">Calculate from Profile</button>
     </div>
@@ -767,7 +775,7 @@
 
     function getTargets() {
       const s = getSettings();
-      return { protein: s.protein || 150, carbs: s.carbs || 200, fat: s.fat || 65 };
+      return { calories: s.calories || 2000, protein: s.protein || 150, carbs: s.carbs || 200, fat: s.fat || 65 };
     }
 
     function getDateKey() {
@@ -811,13 +819,16 @@
       const targets = getTargets();
       let p = 0, c = 0, f = 0;
       log.forEach(item => { p += item.protein; c += item.carbs; f += item.fat; });
+      const cal = Math.round(p * 4 + c * 4 + f * 9);
 
-      document.getElementById('barProtein').style.width = Math.min(100, p / targets.protein * 100) + '%';
-      document.getElementById('barCarbs').style.width   = Math.min(100, c / targets.carbs   * 100) + '%';
-      document.getElementById('barFat').style.width     = Math.min(100, f / targets.fat     * 100) + '%';
-      document.getElementById('valProtein').textContent = `${Math.round(p)} / ${targets.protein}g`;
-      document.getElementById('valCarbs').textContent   = `${Math.round(c)} / ${targets.carbs}g`;
-      document.getElementById('valFat').textContent     = `${Math.round(f)} / ${targets.fat}g`;
+      document.getElementById('barCalories').style.width = Math.min(100, cal / targets.calories * 100) + '%';
+      document.getElementById('barProtein').style.width  = Math.min(100, p / targets.protein   * 100) + '%';
+      document.getElementById('barCarbs').style.width    = Math.min(100, c / targets.carbs     * 100) + '%';
+      document.getElementById('barFat').style.width      = Math.min(100, f / targets.fat       * 100) + '%';
+      document.getElementById('valCalories').textContent = `${cal} / ${targets.calories}`;
+      document.getElementById('valProtein').textContent  = `${Math.round(p)} / ${targets.protein}g`;
+      document.getElementById('valCarbs').textContent    = `${Math.round(c)} / ${targets.carbs}g`;
+      document.getElementById('valFat').textContent      = `${Math.round(f)} / ${targets.fat}g`;
 
       const list = document.getElementById('logList');
       if (!log.length) {
@@ -1140,7 +1151,7 @@
       const age      = parseFloat(document.getElementById('profileAge').value);
       const sex      = getChip('sex');
       const activity = parseFloat(getChip('activity') || '1.55');
-      const goal     = parseInt(getChip('goal') || '0');
+      const goal     = getChip('goal') || 'maintain';
 
       if (!weight || !height || !age || !sex) {
         alert('Fill in weight, height, age and sex first.');
@@ -1150,25 +1161,34 @@
       const bmr  = sex === 'male'
         ? (10 * weight) + (6.25 * height) - (5 * age) + 5
         : (10 * weight) + (6.25 * height) - (5 * age) - 161;
-      const tdee = Math.round(bmr * activity) + goal;
+      const tdee = Math.round(bmr * activity);
 
-      const protein = Math.round(weight * 2);
-      const fat     = Math.round((tdee * 0.25) / 9);
-      const carbs   = Math.max(0, Math.round((tdee - protein * 4 - fat * 9) / 4));
+      let targetCal, proteinPerKg, fatPct;
+      if (goal === 'fatloss')  { targetCal = tdee - 450; proteinPerKg = 2.2; fatPct = 0.25; }
+      else if (goal === 'muscle') { targetCal = tdee + 350; proteinPerKg = 2.0; fatPct = 0.25; }
+      else if (goal === 'recomp') { targetCal = tdee;       proteinPerKg = 2.4; fatPct = 0.30; }
+      else                        { targetCal = tdee;       proteinPerKg = 1.8; fatPct = 0.25; }
 
-      document.getElementById('targetProtein').value = protein;
-      document.getElementById('targetCarbs').value   = carbs;
-      document.getElementById('targetFat').value     = fat;
+      const protein = Math.round(weight * proteinPerKg);
+      const fat     = Math.round((targetCal * fatPct) / 9);
+      const carbs   = Math.max(0, Math.round((targetCal - protein * 4 - fat * 9) / 4));
+      const actualCal = protein * 4 + carbs * 4 + fat * 9;
+
+      document.getElementById('targetCalories').value = actualCal;
+      document.getElementById('targetProtein').value  = protein;
+      document.getElementById('targetCarbs').value    = carbs;
+      document.getElementById('targetFat').value      = fat;
     }
 
     document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsFromProfile);
 
     document.getElementById('openSettings').addEventListener('click', () => {
       const s = getSettings();
-      document.getElementById('apiKeyInput').value   = s.apiKey  || '';
-      document.getElementById('targetProtein').value = s.protein || 150;
-      document.getElementById('targetCarbs').value   = s.carbs   || 200;
-      document.getElementById('targetFat').value     = s.fat     || 65;
+      document.getElementById('apiKeyInput').value    = s.apiKey   || '';
+      document.getElementById('targetCalories').value = s.calories || 2000;
+      document.getElementById('targetProtein').value  = s.protein  || 150;
+      document.getElementById('targetCarbs').value    = s.carbs    || 200;
+      document.getElementById('targetFat').value      = s.fat      || 65;
       document.getElementById('profileWeight').value = s.weight  || '';
       document.getElementById('profileHeight').value = s.height  || '';
       document.getElementById('profileAge').value    = s.age     || '';
@@ -1183,9 +1203,10 @@
     document.getElementById('saveSettings').addEventListener('click', () => {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         apiKey:   document.getElementById('apiKeyInput').value.trim(),
-        protein:  +document.getElementById('targetProtein').value || 150,
-        carbs:    +document.getElementById('targetCarbs').value   || 200,
-        fat:      +document.getElementById('targetFat').value     || 65,
+        calories: +document.getElementById('targetCalories').value || 2000,
+        protein:  +document.getElementById('targetProtein').value  || 150,
+        carbs:    +document.getElementById('targetCarbs').value    || 200,
+        fat:      +document.getElementById('targetFat').value      || 65,
         weight:   +document.getElementById('profileWeight').value || 0,
         height:   +document.getElementById('profileHeight').value || 0,
         age:      +document.getElementById('profileAge').value    || 0,
