@@ -948,9 +948,18 @@
       resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
       resultsEl.classList.remove('hidden');
       try {
-        const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=8`);
+        const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
         const data = await res.json();
         const foods = (data.foods || []).slice(0, 8);
+
+        // Handle both name-based and number-based nutrient formats
+        function getNutrient(nutrients, nameFragment, number) {
+          const n = nutrients.find(n =>
+            n.nutrientNumber === number ||
+            n.nutrientName?.toLowerCase().includes(nameFragment)
+          );
+          return n ? n.value || 0 : 0;
+        }
 
         const manualHTML = `<div class="search-result-item search-result-manual">
           <div class="result-name">+ Add "${q}" manually</div>
@@ -962,10 +971,12 @@
         } else {
           resultsEl.innerHTML = foods.map((food, i) => {
             const nutrients = food.foodNutrients || [];
-            const get = name => { const n = nutrients.find(n => n.nutrientName?.toLowerCase().includes(name)); return n ? Math.round(n.value * 10) / 10 : 0; };
+            const p = Math.round(getNutrient(nutrients, 'protein', 203) * 10) / 10;
+            const c = Math.round(getNutrient(nutrients, 'carbohydrate', 205) * 10) / 10;
+            const f = Math.round(getNutrient(nutrients, 'total lipid', 204) * 10) / 10;
             return `<div class="search-result-item" data-i="${i}">
               <div class="result-name">${food.description}</div>
-              <div class="result-meta">P ${get('protein')}g · C ${get('carbohydrate')}g · F ${get('total lipid')}g per 100g</div>
+              <div class="result-meta">P ${p}g · C ${c}g · F ${f}g per 100g</div>
             </div>`;
           }).join('') + manualHTML;
         }
@@ -974,8 +985,13 @@
           item.addEventListener('click', () => {
             const food = foods[i];
             const nutrients = food.foodNutrients || [];
-            const get = name => { const n = nutrients.find(n => n.nutrientName?.toLowerCase().includes(name)); return n ? n.value : 0; };
-            selectedFood = { name: food.description, protein100: get('protein'), carbs100: get('carbohydrate'), fat100: get('total lipid'), source: 'USDA Food Database' };
+            selectedFood = {
+              name:       food.description,
+              protein100: getNutrient(nutrients, 'protein', 203),
+              carbs100:   getNutrient(nutrients, 'carbohydrate', 205),
+              fat100:     getNutrient(nutrients, 'total lipid', 204),
+              source:     'USDA Food Database'
+            };
             resultsEl.classList.add('hidden');
             showFoodDetail();
           });
