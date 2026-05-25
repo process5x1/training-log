@@ -950,7 +950,7 @@
       try {
         let foods = [];
         try {
-          const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS)`);
+          const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
           const data = await res.json();
           foods = (data.foods || []).slice(0, 8);
         } catch(_) {}
@@ -958,9 +958,11 @@
         // Fallback to Open Food Facts text search if USDA returns nothing
         if (!foods.length) {
           try {
-            const res2 = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,nutriments`);
+            const res2 = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments,lang&lc=en&sort_by=unique_scans_n`);
             const data2 = await res2.json();
-            foods = (data2.products || []).filter(p => p.product_name).slice(0, 8).map(p => ({
+            foods = (data2.products || [])
+              .filter(p => p.product_name && /^[a-zA-Z0-9 &'()\-.,]+$/.test(p.product_name))
+              .slice(0, 8).map(p => ({
               description: p.product_name,
               foodNutrients: [
                 { nutrientNumber: 203, nutrientName: 'Protein',         value: p.nutriments?.proteins_100g   || 0 },
