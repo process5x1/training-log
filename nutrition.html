@@ -272,6 +272,8 @@
     .search-result-item:active { background: #f1f5f9; }
     .result-name { font-weight: 500; }
     .result-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .search-result-manual { border-top: 1px solid #e2e8f0; }
+    .search-result-manual .result-name { color: #2563eb; }
 
     /* Food detail */
     .food-detail-name {
@@ -544,6 +546,16 @@
     </div>
     <div class="gap"></div>
 
+    <div id="manualEntry" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;">
+      <input class="text-input" id="manualName" type="text" placeholder="Food name" />
+      <div style="display:flex;gap:10px;">
+        <input class="text-input" id="manualP" type="number" min="0" placeholder="Protein g/100g" style="flex:1" />
+        <input class="text-input" id="manualC" type="number" min="0" placeholder="Carbs g/100g" style="flex:1" />
+        <input class="text-input" id="manualF" type="number" min="0" placeholder="Fat g/100g" style="flex:1" />
+      </div>
+      <button class="btn-primary" id="manualAddBtn">Use These Values</button>
+    </div>
+
     <div id="foodDetail" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:flex-start;">
       <div class="food-detail-name" id="detailName"></div>
       <div class="food-detail-source" id="detailSource"></div>
@@ -749,6 +761,8 @@
 
     // ── Search screen ──
     document.getElementById('searchBack').addEventListener('click', () => {
+      document.getElementById('manualEntry').classList.add('hidden');
+      document.getElementById('foodDetail').classList.add('hidden');
       showScreen('homeScreen'); renderHome();
     });
 
@@ -763,24 +777,32 @@
 
     async function runSearch(q) {
       const resultsEl = document.getElementById('searchResults');
-      resultsEl.innerHTML = '<div class="search-result-item" style="color:#333;cursor:default">Searching…</div>';
+      resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
       resultsEl.classList.remove('hidden');
       try {
-        const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=8&dataType=SR%20Legacy,Survey%20(FNDDS)`);
+        const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=8`);
         const data = await res.json();
         const foods = (data.foods || []).slice(0, 8);
-        if (!foods.length) { resultsEl.innerHTML = '<div class="search-result-item" style="color:#333;cursor:default">No results found</div>'; return; }
 
-        resultsEl.innerHTML = foods.map((food, i) => {
-          const nutrients = food.foodNutrients || [];
-          const get = name => { const n = nutrients.find(n => n.nutrientName?.toLowerCase().includes(name)); return n ? Math.round(n.value * 10) / 10 : 0; };
-          return `<div class="search-result-item" data-i="${i}">
-            <div class="result-name">${food.description}</div>
-            <div class="result-meta">P ${get('protein')}g · C ${get('carbohydrate')}g · F ${get('total lipid')}g per 100g</div>
-          </div>`;
-        }).join('');
+        const manualHTML = `<div class="search-result-item search-result-manual">
+          <div class="result-name">+ Add "${q}" manually</div>
+          <div class="result-meta">Enter macros yourself</div>
+        </div>`;
 
-        resultsEl.querySelectorAll('.search-result-item').forEach((item, i) => {
+        if (!foods.length) {
+          resultsEl.innerHTML = manualHTML;
+        } else {
+          resultsEl.innerHTML = foods.map((food, i) => {
+            const nutrients = food.foodNutrients || [];
+            const get = name => { const n = nutrients.find(n => n.nutrientName?.toLowerCase().includes(name)); return n ? Math.round(n.value * 10) / 10 : 0; };
+            return `<div class="search-result-item" data-i="${i}">
+              <div class="result-name">${food.description}</div>
+              <div class="result-meta">P ${get('protein')}g · C ${get('carbohydrate')}g · F ${get('total lipid')}g per 100g</div>
+            </div>`;
+          }).join('') + manualHTML;
+        }
+
+        resultsEl.querySelectorAll('.search-result-item:not(.search-result-manual)').forEach((item, i) => {
           item.addEventListener('click', () => {
             const food = foods[i];
             const nutrients = food.foodNutrients || [];
@@ -790,10 +812,34 @@
             showFoodDetail();
           });
         });
+
+        resultsEl.querySelector('.search-result-manual').addEventListener('click', () => {
+          resultsEl.classList.add('hidden');
+          showManualEntry(q);
+        });
       } catch(e) {
-        resultsEl.innerHTML = '<div class="search-result-item" style="color:#555;cursor:default">Search failed — check your connection</div>';
+        resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed — check your connection</div>';
       }
     }
+
+    function showManualEntry(name) {
+      document.getElementById('manualName').value   = name;
+      document.getElementById('manualP').value      = '';
+      document.getElementById('manualC').value      = '';
+      document.getElementById('manualF').value      = '';
+      document.getElementById('foodDetail').classList.add('hidden');
+      document.getElementById('manualEntry').classList.remove('hidden');
+    }
+
+    document.getElementById('manualAddBtn').addEventListener('click', () => {
+      const name = document.getElementById('manualName').value.trim() || 'Custom food';
+      const p = parseFloat(document.getElementById('manualP').value) || 0;
+      const c = parseFloat(document.getElementById('manualC').value) || 0;
+      const f = parseFloat(document.getElementById('manualF').value) || 0;
+      selectedFood = { name, protein100: p, carbs100: c, fat100: f, source: 'Manual entry' };
+      document.getElementById('manualEntry').classList.add('hidden');
+      showFoodDetail();
+    });
 
     function showFoodDetail() {
       const detail = document.getElementById('foodDetail');
