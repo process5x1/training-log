@@ -620,40 +620,23 @@
 
     <div id="aiAnalysisResult" class="hidden"></div>
 
-    <div class="home-actions">
-      <input class="text-input" id="quickSearch" type="text" placeholder='Search or type "4 whole eggs"…' autocomplete="off" />
-      <div class="action-row">
-        <button class="btn-ghost" id="openBarcode">Scan Barcode</button>
-        <button class="btn-ghost" id="openFridge">My Fridge</button>
-      </div>
-      <button class="btn-ghost" id="openLabelScan">Scan Nutrition Label</button>
-      <input type="file" id="labelPhoto" accept="image/*" style="display:none" />
-      <button class="btn-blue" id="analyseBtn">Analyse My Day</button>
-    </div>
-  </div>
-
-  <!-- Search / Food detail -->
-  <div id="searchScreen" class="screen">
-    <button class="back-btn" id="searchBack">← Back</button>
-    <div class="screen-title">Add Food</div>
-
-    <div class="search-wrap">
-      <input class="text-input" id="searchInput" type="text" placeholder='e.g. "4 whole eggs"' autocomplete="off" />
+    <!-- Inline search -->
+    <div class="search-wrap" style="width:100%;max-width:380px;margin-bottom:10px">
+      <input class="text-input" id="quickSearch" type="text" placeholder='Search food…' autocomplete="off" />
       <div class="search-results hidden" id="searchResults"></div>
     </div>
-    <div class="gap"></div>
 
-    <div id="manualEntry" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;">
+    <div id="manualEntry" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
       <input class="text-input" id="manualName" type="text" placeholder="Food name" />
-      <div style="display:flex;gap:10px;">
-        <input class="text-input" id="manualP" type="number" min="0" placeholder="Protein g/100g" style="flex:1" />
-        <input class="text-input" id="manualC" type="number" min="0" placeholder="Carbs g/100g" style="flex:1" />
-        <input class="text-input" id="manualF" type="number" min="0" placeholder="Fat g/100g" style="flex:1" />
+      <div style="display:flex;gap:8px;">
+        <input class="text-input" id="manualP" type="number" min="0" placeholder="Protein /100g" style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualC" type="number" min="0" placeholder="Carbs /100g" style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualF" type="number" min="0" placeholder="Fat /100g" style="flex:1;font-size:13px;padding:12px 10px" />
       </div>
       <button class="btn-primary" id="manualAddBtn">Use These Values</button>
     </div>
 
-    <div id="foodDetail" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:flex-start;">
+    <div id="foodDetail" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px">
       <div class="food-detail-name" id="detailName"></div>
       <div class="food-detail-source" id="detailSource"></div>
       <div class="macro-grid">
@@ -676,7 +659,20 @@
       </div>
       <button class="btn-primary" id="addFoodBtn">Add to Log</button>
     </div>
+
+    <div class="home-actions">
+      <div class="action-row">
+        <button class="btn-ghost" id="openBarcode">Scan Barcode</button>
+        <button class="btn-ghost" id="openFridge">My Fridge</button>
+      </div>
+      <button class="btn-ghost" id="openLabelScan">Scan Nutrition Label</button>
+      <input type="file" id="labelPhoto" accept="image/*" style="display:none" />
+      <button class="btn-blue" id="analyseBtn">Analyse My Day</button>
+    </div>
   </div>
+
+  <!-- Search screen (barcode/label results only) -->
+  <div id="searchScreen" class="screen" style="display:none"></div>
 
   <!-- Barcode -->
   <div id="barcodeScreen" class="screen">
@@ -921,23 +917,12 @@
       document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
     });
 
-    // Quick search from home input
-    document.getElementById('quickSearch').addEventListener('focus', () => {
-      showScreen('searchScreen');
-      document.getElementById('searchInput').focus();
-    });
-
-    // ── Search screen ──
-    document.getElementById('searchBack').addEventListener('click', () => {
-      document.getElementById('manualEntry').classList.add('hidden');
-      document.getElementById('foodDetail').classList.add('hidden');
-      showScreen('homeScreen'); renderHome();
-    });
-
+    // ── Inline search on home ──
     let searchTimer = null;
-    document.getElementById('searchInput').addEventListener('input', e => {
+    document.getElementById('quickSearch').addEventListener('input', e => {
       const q = e.target.value.trim();
       document.getElementById('foodDetail').classList.add('hidden');
+      document.getElementById('manualEntry').classList.add('hidden');
       if (q.length < 2) { document.getElementById('searchResults').classList.add('hidden'); return; }
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => runSearch(q), 400);
@@ -1029,11 +1014,12 @@
     }
 
     function showManualEntry(name) {
-      document.getElementById('manualName').value   = name;
-      document.getElementById('manualP').value      = '';
-      document.getElementById('manualC').value      = '';
-      document.getElementById('manualF').value      = '';
+      document.getElementById('manualName').value = name;
+      document.getElementById('manualP').value    = '';
+      document.getElementById('manualC').value    = '';
+      document.getElementById('manualF').value    = '';
       document.getElementById('foodDetail').classList.add('hidden');
+      document.getElementById('searchResults').classList.add('hidden');
       document.getElementById('manualEntry').classList.remove('hidden');
     }
 
@@ -1075,8 +1061,7 @@
       saveLog(log);
       selectedFood = null;
       document.getElementById('foodDetail').classList.add('hidden');
-      document.getElementById('searchInput').value = '';
-      showScreen('homeScreen');
+      document.getElementById('quickSearch').value = '';
       renderHome();
     });
 
@@ -1099,8 +1084,8 @@
             if (data.status !== 1) { status.textContent = 'Product not found in database'; return; }
             const n = data.product.nutriments;
             selectedFood = { name: data.product.product_name || 'Unknown product', protein100: n['proteins_100g'] || 0, carbs100: n['carbohydrates_100g'] || 0, fat100: n['fat_100g'] || 0, source: 'Open Food Facts' };
-            showScreen('searchScreen');
-            document.getElementById('searchInput').value = '';
+            stopScanner();
+            showScreen('homeScreen');
             document.getElementById('searchResults').classList.add('hidden');
             showFoodDetail();
           } catch(e) { status.textContent = 'Lookup failed'; }
@@ -1190,8 +1175,8 @@
       const { apiKey } = getSettings();
       if (!apiKey) { alert('Add your Claude API key in Settings first.'); return; }
 
-      showScreen('searchScreen');
-      document.getElementById('searchInput').value = '';
+      showScreen('homeScreen');
+      document.getElementById('quickSearch').value = '';
       document.getElementById('searchResults').classList.add('hidden');
       document.getElementById('foodDetail').classList.add('hidden');
       document.getElementById('manualEntry').classList.add('hidden');
@@ -1200,7 +1185,7 @@
       statusEl.className = 'ai-result loading';
       statusEl.style.cssText = 'width:100%;max-width:380px;margin-top:16px';
       statusEl.textContent = 'Reading label…';
-      document.getElementById('searchScreen').appendChild(statusEl);
+      document.getElementById('homeScreen').appendChild(statusEl);
 
       try {
         // Read image as base64, then optionally resize if very large
