@@ -409,6 +409,81 @@
     }
     .target-input:focus { outline: none; border-color: #94a3b8; }
     .target-unit { font-size: 12px; color: #475569; }
+
+    /* Date nav */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 20px;
+    }
+
+    .date-nav-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px 10px;
+      font-family: inherit;
+      line-height: 1;
+    }
+    .date-nav-btn:active { color: #0f172a; }
+    .date-nav-btn.invisible { visibility: hidden; }
+
+    .date-nav-label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Meal chips */
+    .meal-chip {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      color: #94a3b8;
+      background: #f8fafc;
+    }
+
+    .meal-chip.breakfast { background: #fef3c7; border-color: #fde68a; color: #92400e; }
+    .meal-chip.lunch     { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+    .meal-chip.dinner    { background: #ede9fe; border-color: #ddd6fe; color: #5b21b6; }
+    .meal-chip.snack     { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+
+    .meal-picker {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .meal-pick-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #64748b;
+      font-family: inherit;
+    }
+
+    .meal-pick-btn.breakfast { background: #fef3c7; border-color: #fde68a; color: #92400e; }
+    .meal-pick-btn.lunch     { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+    .meal-pick-btn.dinner    { background: #ede9fe; border-color: #ddd6fe; color: #5b21b6; }
+    .meal-pick-btn.snack     { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
   </style>
 </head>
 <body>
@@ -419,6 +494,12 @@
     <button class="settings-btn" id="openSettings">Settings</button>
 
     <div class="screen-title">Nutrition Log</div>
+
+    <div class="date-nav">
+      <button class="date-nav-btn" id="prevDay">‹</button>
+      <span class="date-nav-label" id="dateNavLabel">Today</span>
+      <button class="date-nav-btn invisible" id="nextDay">›</button>
+    </div>
 
     <div class="macro-bar-wrap">
       <div class="macro-row">
@@ -533,6 +614,7 @@
 
     let selectedFood = null;
     let scanner      = null;
+    let dateOffset   = 0;
 
     function getSettings() {
       return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
@@ -543,18 +625,33 @@
       return { protein: s.protein || 150, carbs: s.carbs || 200, fat: s.fat || 65 };
     }
 
-    function getTodayKey() {
-      return new Date().toISOString().slice(0, 10);
+    function getDateKey() {
+      const d = new Date();
+      d.setDate(d.getDate() + dateOffset);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function formatNavDate(offset) {
+      if (offset === 0) return 'Today';
+      if (offset === -1) return 'Yesterday';
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+
+    function updateDateNav() {
+      document.getElementById('dateNavLabel').textContent = formatNavDate(dateOffset);
+      document.getElementById('nextDay').classList.toggle('invisible', dateOffset >= 0);
     }
 
     function getLog() {
       const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return all[getTodayKey()] || [];
+      return all[getDateKey()] || [];
     }
 
     function saveLog(log) {
       const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      all[getTodayKey()] = log;
+      all[getDateKey()] = log;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     }
 
@@ -582,15 +679,46 @@
         list.innerHTML = '<div class="empty-log">Nothing logged yet</div>';
         return;
       }
-      list.innerHTML = log.map((item, i) => `
-        <div class="log-item">
-          <div>
-            <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}g` : ''}</div>
-            <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
-          </div>
-          <button class="log-item-delete" data-i="${i}">×</button>
-        </div>
-      `).join('');
+
+      const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+      list.innerHTML = log.map((item, i) => {
+        const meal = item.meal || '';
+        const mealCls = meal ? `meal-chip ${meal.toLowerCase()}` : 'meal-chip';
+        const mealLabel = meal || '+ Meal';
+        const pickerBtns = MEALS.map(m =>
+          `<button class="meal-pick-btn ${m.toLowerCase()}" data-meal="${m}" data-i="${i}">${m}</button>`
+        ).join('') + (meal ? `<button class="meal-pick-btn" data-meal="" data-i="${i}">Clear</button>` : '');
+        return `
+          <div class="log-item">
+            <div style="flex:1">
+              <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}g` : ''}</div>
+              <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
+              <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
+              <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
+            </div>
+            <button class="log-item-delete" data-i="${i}">×</button>
+          </div>`;
+      }).join('');
+
+      list.querySelectorAll('.meal-chip').forEach(chip => {
+        chip.addEventListener('click', e => {
+          e.stopPropagation();
+          const picker = list.querySelector(`[data-picker="${chip.dataset.i}"]`);
+          list.querySelectorAll('.meal-picker').forEach(p => { if (p !== picker) p.classList.add('hidden'); });
+          picker.classList.toggle('hidden');
+        });
+      });
+
+      list.querySelectorAll('.meal-pick-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const l = getLog();
+          l[+btn.dataset.i].meal = btn.dataset.meal;
+          saveLog(l);
+          renderHome();
+        });
+      });
 
       list.querySelectorAll('.log-item-delete').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -598,6 +726,20 @@
         });
       });
     }
+
+    document.getElementById('prevDay').addEventListener('click', () => {
+      dateOffset--;
+      updateDateNav();
+      renderHome();
+    });
+
+    document.getElementById('nextDay').addEventListener('click', () => {
+      if (dateOffset < 0) { dateOffset++; updateDateNav(); renderHome(); }
+    });
+
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
+    });
 
     // Quick search from home input
     document.getElementById('quickSearch').addEventListener('focus', () => {
