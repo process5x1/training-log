@@ -205,9 +205,20 @@
       color: #475569;
       font-size: 18px;
       cursor: pointer;
-      padding: 0 0 0 12px;
+      padding: 0;
       font-family: inherit;
     }
+
+    .log-item-dupe {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+    .log-item-dupe:active { color: #2563eb; }
 
     .empty-log {
       font-size: 13px;
@@ -853,7 +864,10 @@
               <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
               <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
             </div>
-            <button class="log-item-delete" data-i="${i}">×</button>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-left:10px">
+              <button class="log-item-delete" data-i="${i}">×</button>
+              <button class="log-item-dupe" data-i="${i}" title="Duplicate">⧉</button>
+            </div>
           </div>`;
       }).join('');
 
@@ -879,6 +893,14 @@
       list.querySelectorAll('.log-item-delete').forEach(btn => {
         btn.addEventListener('click', () => {
           const l = getLog(); l.splice(+btn.dataset.i, 1); saveLog(l); renderHome();
+        });
+      });
+
+      list.querySelectorAll('.log-item-dupe').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const l = getLog();
+          l.push({ ...l[+btn.dataset.i] });
+          saveLog(l); renderHome();
         });
       });
     }
