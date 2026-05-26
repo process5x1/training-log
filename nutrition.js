@@ -359,11 +359,22 @@ function setPanelUnit(unit) {
   document.getElementById('unitMl').classList.toggle('selected', unit === 'ml');
   document.getElementById('unitPcs').classList.toggle('selected', unit === 'pcs');
   document.getElementById('perPieceWrap').style.display = unit === 'pcs' ? 'flex' : 'none';
+  document.getElementById('pcsPresets').style.display   = unit === 'pcs' ? 'flex' : 'none';
+  document.querySelectorAll('#pcsPresets .pcs-preset').forEach(b => b.classList.remove('active'));
   updateDetailMacros();
 }
 document.getElementById('unitG').addEventListener('click', () => setPanelUnit('g'));
 document.getElementById('unitMl').addEventListener('click', () => setPanelUnit('ml'));
 document.getElementById('unitPcs').addEventListener('click', () => setPanelUnit('pcs'));
+
+document.querySelectorAll('#pcsPresets .pcs-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('perPieceInput').value = btn.dataset.g;
+    document.querySelectorAll('#pcsPresets .pcs-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateDetailMacros();
+  });
+});
 
 document.getElementById('gramInput').addEventListener('input', updateDetailMacros);
 document.getElementById('perPieceInput').addEventListener('input', updateDetailMacros);
@@ -458,6 +469,9 @@ function openEditModal(i) {
   if (item.unit === 'pcs' && item.pieces) {
     document.getElementById('modalGrams').value    = item.pieces;
     document.getElementById('modalPerPiece').value = item.perPiece || 55;
+    document.querySelectorAll('#modalPcsPresets .pcs-preset').forEach(b => {
+      b.classList.toggle('active', +b.dataset.g === item.perPiece);
+    });
   } else {
     document.getElementById('modalGrams').value = g;
   }
@@ -479,12 +493,23 @@ function setModalUnit(unit) {
   document.getElementById('modalUnitG').classList.toggle('selected', unit === 'g');
   document.getElementById('modalUnitMl').classList.toggle('selected', unit === 'ml');
   document.getElementById('modalUnitPcs').classList.toggle('selected', unit === 'pcs');
-  document.getElementById('modalPerPieceWrap').style.display = unit === 'pcs' ? 'flex' : 'none';
+  document.getElementById('modalPerPieceWrap').style.display   = unit === 'pcs' ? 'flex' : 'none';
+  document.getElementById('modalPcsPresets').style.display     = unit === 'pcs' ? 'flex' : 'none';
+  document.querySelectorAll('#modalPcsPresets .pcs-preset').forEach(b => b.classList.remove('active'));
   updateModalMacros();
 }
 document.getElementById('modalUnitG').addEventListener('click', () => setModalUnit('g'));
 document.getElementById('modalUnitMl').addEventListener('click', () => setModalUnit('ml'));
 document.getElementById('modalUnitPcs').addEventListener('click', () => setModalUnit('pcs'));
+
+document.querySelectorAll('#modalPcsPresets .pcs-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('modalPerPiece').value = btn.dataset.g;
+    document.querySelectorAll('#modalPcsPresets .pcs-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateModalMacros();
+  });
+});
 
 document.getElementById('modalCancel').addEventListener('click', closeEditModal);
 

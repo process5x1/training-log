@@ -392,6 +392,21 @@ body {
 }
 .unit-chip.selected { background: #0f172a; border-color: #0f172a; color: #fff; }
 
+.pcs-preset {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.pcs-preset:active  { background: #e2e8f0; }
+.pcs-preset.active  { background: #0f172a; border-color: #0f172a; color: #fff; }
+
 /* Edit modal */
 .modal-overlay {
   position: fixed;
