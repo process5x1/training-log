@@ -167,28 +167,7 @@ function renderHome() {
   list.querySelectorAll('.log-item-body').forEach(el => {
     el.addEventListener('click', e => {
       if (e.target.closest('.meal-chip, .meal-picker, .meal-pick-btn')) return;
-      const i    = +el.dataset.i;
-      const item = getLog()[i];
-      const g    = item.grams || 100;
-      editingIndex = i;
-      selectedUnit = item.unit || 'g';
-      document.getElementById(selectedUnit === 'ml' ? 'unitMl' : 'unitG').classList.add('selected');
-      document.getElementById(selectedUnit === 'ml' ? 'unitG' : 'unitMl').classList.remove('selected');
-      selectedFood = {
-        name:       item.name,
-        protein100: item.p100 ?? (item.protein / g * 100),
-        carbs100:   item.c100 ?? (item.carbs   / g * 100),
-        fat100:     item.f100 ?? (item.fat     / g * 100),
-        source:     'Edit'
-      };
-      document.getElementById('quickSearch').value = '';
-      document.getElementById('searchResults').classList.add('hidden');
-      document.getElementById('manualEntry').classList.add('hidden');
-      showFoodDetail(true);
-      document.getElementById('gramInput').value        = g;
-      document.getElementById('addFoodBtn').textContent = 'Save Changes';
-      updateDetailMacros();
-      document.getElementById('foodDetail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      openEditModal(+el.dataset.i);
     });
   });
 
@@ -424,6 +403,86 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
   document.getElementById('foodDetail').classList.add('hidden');
   document.getElementById('addFoodBtn').textContent = 'Add to Log';
   document.getElementById('quickSearch').value = '';
+  renderHome();
+});
+
+// ── Edit modal ──
+let modalUnit = 'g';
+let modalFood = null;
+
+function updateModalMacros() {
+  if (!modalFood) return;
+  const g = parseFloat(document.getElementById('modalGrams').value) || 0;
+  const r = g / 100;
+  document.getElementById('modalProtein').textContent = Math.round(modalFood.protein100 * r * 10) / 10 + 'g';
+  document.getElementById('modalCarbs').textContent   = Math.round(modalFood.carbs100   * r * 10) / 10 + 'g';
+  document.getElementById('modalFat').textContent     = Math.round(modalFood.fat100     * r * 10) / 10 + 'g';
+}
+
+function openEditModal(i) {
+  const item = getLog()[i];
+  const g    = item.grams || 100;
+  editingIndex = i;
+  modalUnit = item.unit || 'g';
+  modalFood = {
+    protein100: item.p100 ?? (item.protein / g * 100),
+    carbs100:   item.c100 ?? (item.carbs   / g * 100),
+    fat100:     item.f100 ?? (item.fat     / g * 100),
+  };
+  document.getElementById('modalFoodName').textContent = item.name;
+  document.getElementById('modalGrams').value = g;
+  document.getElementById('modalUnitG').classList.toggle('selected', modalUnit === 'g');
+  document.getElementById('modalUnitMl').classList.toggle('selected', modalUnit === 'ml');
+  updateModalMacros();
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+  editingIndex = null;
+  modalFood = null;
+}
+
+document.getElementById('modalGrams').addEventListener('input', updateModalMacros);
+
+document.getElementById('modalUnitG').addEventListener('click', () => {
+  modalUnit = 'g';
+  document.getElementById('modalUnitG').classList.add('selected');
+  document.getElementById('modalUnitMl').classList.remove('selected');
+});
+
+document.getElementById('modalUnitMl').addEventListener('click', () => {
+  modalUnit = 'ml';
+  document.getElementById('modalUnitMl').classList.add('selected');
+  document.getElementById('modalUnitG').classList.remove('selected');
+});
+
+document.getElementById('modalCancel').addEventListener('click', closeEditModal);
+
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+});
+
+document.getElementById('modalSave').addEventListener('click', () => {
+  if (editingIndex === null || !modalFood) return;
+  const g   = parseFloat(document.getElementById('modalGrams').value) || 100;
+  const r   = g / 100;
+  const log = getLog();
+  const prev = log[editingIndex];
+  log[editingIndex] = {
+    name:    prev.name,
+    grams:   g,
+    unit:    modalUnit,
+    protein: modalFood.protein100 * r,
+    carbs:   modalFood.carbs100   * r,
+    fat:     modalFood.fat100     * r,
+    p100:    modalFood.protein100,
+    c100:    modalFood.carbs100,
+    f100:    modalFood.fat100,
+    meal:    prev.meal,
+  };
+  saveLog(log);
+  closeEditModal();
   renderHome();
 });
 

@@ -207,6 +207,38 @@
     <button class="btn-primary" id="saveSettings">Save</button>
   </div>
 
+  <!-- Edit modal -->
+  <div id="editModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-food-name" id="modalFoodName"></div>
+      <div class="macro-grid">
+        <div class="macro-cell">
+          <div class="macro-cell-val protein" id="modalProtein">0g</div>
+          <div class="macro-cell-label">Protein</div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-val carbs" id="modalCarbs">0g</div>
+          <div class="macro-cell-label">Carbs</div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-val fat" id="modalFat">0g</div>
+          <div class="macro-cell-label">Fat</div>
+        </div>
+      </div>
+      <div class="gram-input-wrap">
+        <input class="gram-input" id="modalGrams" type="number" value="100" min="1" />
+        <div style="display:flex;gap:4px">
+          <button class="unit-chip selected" id="modalUnitG">g</button>
+          <button class="unit-chip" id="modalUnitMl">ml</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modalCancel">Cancel</button>
+        <button class="btn-primary" id="modalSave">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="nutrition.js"></script>
 </body>
 </html>
