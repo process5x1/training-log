@@ -2,10 +2,11 @@ const STORAGE_KEY  = 'nutritionLog_v1';
 const SETTINGS_KEY = 'nutritionSettings';
 const USDA_KEY     = 'DEMO_KEY';
 
-let selectedFood = null;
-let selectedUnit = 'g';
-let scanner      = null;
-let dateOffset   = 0;
+let selectedFood  = null;
+let selectedUnit  = 'g';
+let editingIndex  = null;
+let scanner       = null;
+let dateOffset    = 0;
 
 function getSettings() {
   return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
@@ -128,7 +129,7 @@ function renderHome() {
     ).join('') + (meal ? `<button class="meal-pick-btn" data-meal="" data-i="${i}">Clear</button>` : '');
     return `
       <div class="log-item">
-        <div style="flex:1">
+        <div class="log-item-body" data-i="${i}" style="flex:1;cursor:pointer">
           <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}${item.unit || 'g'}` : ''}</div>
           <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
@@ -160,6 +161,33 @@ function renderHome() {
       l[+btn.dataset.i].meal = btn.dataset.meal;
       saveLog(l);
       renderHome();
+    });
+  });
+
+  list.querySelectorAll('.log-item-body').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('.meal-chip, .meal-picker, .meal-pick-btn')) return;
+      const i    = +el.dataset.i;
+      const item = getLog()[i];
+      const g    = item.grams || 100;
+      editingIndex = i;
+      selectedUnit = item.unit || 'g';
+      document.getElementById(selectedUnit === 'ml' ? 'unitMl' : 'unitG').classList.add('selected');
+      document.getElementById(selectedUnit === 'ml' ? 'unitG' : 'unitMl').classList.remove('selected');
+      selectedFood = {
+        name:       item.name,
+        protein100: item.p100 ?? (item.protein / g * 100),
+        carbs100:   item.c100 ?? (item.carbs   / g * 100),
+        fat100:     item.f100 ?? (item.fat     / g * 100),
+        source:     'Edit'
+      };
+      document.getElementById('quickSearch').value = '';
+      document.getElementById('searchResults').classList.add('hidden');
+      document.getElementById('manualEntry').classList.add('hidden');
+      showFoodDetail(true);
+      document.getElementById('gramInput').value        = g;
+      document.getElementById('addFoodBtn').textContent = 'Save Changes';
+      updateDetailMacros();
     });
   });
 
@@ -327,10 +355,14 @@ document.getElementById('manualAddBtn').addEventListener('click', () => {
   showFoodDetail();
 });
 
-function showFoodDetail() {
-  selectedUnit = 'g';
-  document.getElementById('unitG').classList.add('selected');
-  document.getElementById('unitMl').classList.remove('selected');
+function showFoodDetail(fromEdit = false) {
+  if (!fromEdit) {
+    editingIndex = null;
+    document.getElementById('addFoodBtn').textContent = 'Add to Log';
+    selectedUnit = 'g';
+    document.getElementById('unitG').classList.add('selected');
+    document.getElementById('unitMl').classList.remove('selected');
+  }
   const detail = document.getElementById('foodDetail');
   detail.classList.remove('hidden');
   document.getElementById('detailName').textContent   = selectedFood.name;
@@ -363,13 +395,33 @@ function updateDetailMacros() {
 }
 
 document.getElementById('addFoodBtn').addEventListener('click', () => {
-  const g = parseFloat(document.getElementById('gramInput').value) || 100;
-  const r = g / 100;
+  const g   = parseFloat(document.getElementById('gramInput').value) || 100;
+  const r   = g / 100;
   const log = getLog();
-  log.push({ name: selectedFood.name, grams: g, unit: selectedUnit, protein: selectedFood.protein100 * r, carbs: selectedFood.carbs100 * r, fat: selectedFood.fat100 * r, p100: selectedFood.protein100, c100: selectedFood.carbs100, f100: selectedFood.fat100 });
+  const entry = {
+    name:    selectedFood.name,
+    grams:   g,
+    unit:    selectedUnit,
+    protein: selectedFood.protein100 * r,
+    carbs:   selectedFood.carbs100   * r,
+    fat:     selectedFood.fat100     * r,
+    p100:    selectedFood.protein100,
+    c100:    selectedFood.carbs100,
+    f100:    selectedFood.fat100,
+  };
+
+  if (editingIndex !== null) {
+    entry.meal   = log[editingIndex].meal;  // preserve meal label
+    log[editingIndex] = entry;
+    editingIndex = null;
+  } else {
+    log.push(entry);
+  }
+
   saveLog(log);
   selectedFood = null;
   document.getElementById('foodDetail').classList.add('hidden');
+  document.getElementById('addFoodBtn').textContent = 'Add to Log';
   document.getElementById('quickSearch').value = '';
   renderHome();
 });
