@@ -162,42 +162,24 @@ async function runSearch(q) {
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
   try {
+    const BRITISH = {
+      'sweetcorn': 'sweet corn', 'aubergine': 'eggplant', 'courgette': 'zucchini',
+      'coriander': 'cilantro', 'rocket': 'arugula', 'mangetout': 'snow peas',
+      'spring onion': 'green onion', 'swede': 'rutabaga', 'mince': 'ground beef',
+      'crisps': 'potato chips', 'chips': 'french fries', 'prawns': 'shrimp',
+      'minced beef': 'ground beef', 'minced chicken': 'ground chicken',
+      'full fat milk': 'whole milk', 'semi skimmed milk': 'reduced fat milk',
+      'jacket potato': 'baked potato', 'butternut squash': 'butternut squash',
+    };
+    const usdaQ   = BRITISH[q.toLowerCase()] || q;
+    const usdaKey = getSettings().usdaKey || USDA_KEY;
     let foods = [];
 
-    // USDA search
     try {
-      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
+      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(usdaQ)}&api_key=${usdaKey}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
       const data = await res.json();
       foods = (data.foods || []).slice(0, 8);
     } catch(_) {}
-
-    // Claude fallback — fires when USDA returns nothing (rate-limited or unknown food)
-    if (!foods.length) {
-      const { apiKey } = getSettings();
-      if (apiKey) {
-        try {
-          resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Looking up with AI…</div>';
-          const raw = await callClaude(apiKey,
-            `Give the typical nutritional values per 100g for "${q}". Return ONLY valid JSON, no explanation: {"name":"common English name","protein":0,"carbs":0,"fat":0}`
-          );
-          const match = raw.match(/\{[\s\S]*?\}/);
-          if (match) {
-            const parsed = JSON.parse(match[0]);
-            if (parsed.name && (parsed.protein || parsed.carbs || parsed.fat)) {
-              foods = [{
-                description: parsed.name,
-                foodNutrients: [
-                  { nutrientNumber: 203, value: parsed.protein || 0 },
-                  { nutrientNumber: 205, value: parsed.carbs   || 0 },
-                  { nutrientNumber: 204, value: parsed.fat     || 0 },
-                ],
-                _source: 'AI Estimate'
-              }];
-            }
-          }
-        } catch(_) {}
-      }
-    }
 
     function getNutrient(nutrients, nameFragment, number) {
       const n = nutrients.find(n =>
@@ -595,6 +577,7 @@ document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsF
 document.getElementById('openSettings').addEventListener('click', () => {
   const s = getSettings();
   document.getElementById('apiKeyInput').value    = s.apiKey   || '';
+  document.getElementById('usdaKeyInput').value   = s.usdaKey  || '';
   document.getElementById('targetCalories').value = s.calories || 2000;
   document.getElementById('targetProtein').value  = s.protein  || 150;
   document.getElementById('targetCarbs').value    = s.carbs    || 200;
@@ -613,6 +596,7 @@ document.getElementById('settingsBack').addEventListener('click', () => { showSc
 document.getElementById('saveSettings').addEventListener('click', () => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({
     apiKey:   document.getElementById('apiKeyInput').value.trim(),
+    usdaKey:  document.getElementById('usdaKeyInput').value.trim(),
     calories: +document.getElementById('targetCalories').value || 2000,
     protein:  +document.getElementById('targetProtein').value  || 150,
     carbs:    +document.getElementById('targetCarbs').value    || 200,

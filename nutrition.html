@@ -129,10 +129,15 @@
     <button class="back-btn" id="settingsBack">← Back</button>
     <div class="screen-title">Settings</div>
 
-    <!-- API Key -->
-    <div class="settings-section-title" style="width:100%;max-width:380px">API Key</div>
+    <!-- API Keys -->
+    <div class="settings-section-title" style="width:100%;max-width:380px">API Keys</div>
+    <div class="settings-label">Claude (AI features)</div>
     <input class="text-input" id="apiKeyInput" type="password" placeholder="sk-ant-…" />
-    <div class="settings-note">Get a key at console.anthropic.com — stored only in your browser, never sent anywhere.</div>
+    <div class="settings-note">console.anthropic.com — for label scan, meal suggestions, day analysis.</div>
+    <div class="gap"></div>
+    <div class="settings-label">USDA Food Database</div>
+    <input class="text-input" id="usdaKeyInput" type="password" placeholder="Paste your free USDA key…" />
+    <div class="settings-note">Free key at fdc.nal.usda.gov/api-key-signup — removes search rate limits. Uses shared demo key if blank.</div>
 
     <!-- Personal Profile -->
     <div class="settings-section">
