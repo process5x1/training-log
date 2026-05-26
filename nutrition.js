@@ -165,7 +165,7 @@ async function runSearch(q) {
     let foods = [];
 
     try {
-      const res  = await fetch(`https://uk.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=product_name,nutriments,generic_name&sort_by=unique_scans_n`);
+      const res  = await fetch(`https://uk.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q.toLowerCase())}&search_simple=1&action=process&json=1&page_size=24&fields=product_name,nutriments,generic_name&sort_by=unique_scans_n`);
       const data = await res.json();
 
       const isEnglish = name =>
