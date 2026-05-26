@@ -188,6 +188,7 @@ function renderHome() {
       document.getElementById('gramInput').value        = g;
       document.getElementById('addFoodBtn').textContent = 'Save Changes';
       updateDetailMacros();
+      document.getElementById('foodDetail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   });
 
