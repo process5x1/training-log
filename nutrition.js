@@ -157,34 +157,37 @@ document.getElementById('quickSearch').addEventListener('input', e => {
   searchTimer = setTimeout(() => runSearch(q), 400);
 });
 
-const BRITISH_TO_AMERICAN = {
-  'sweetcorn':    'sweet corn',
-  'aubergine':    'eggplant',
-  'courgette':    'zucchini',
-  'coriander':    'cilantro',
-  'rocket':       'arugula',
-  'mangetout':    'snow peas',
-  'spring onion': 'green onion',
-  'swede':        'rutabaga',
-  'mince':        'ground beef',
-  'crisps':       'potato chips',
-  'chips':        'french fries',
-  'prawns':       'shrimp',
-  'minced beef':  'ground beef',
-};
-
 async function runSearch(q) {
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
   try {
-    const usQuery = BRITISH_TO_AMERICAN[q.toLowerCase()] || q;
+    const [usdaRes, ukRes] = await Promise.allSettled([
+      fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=8&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`).then(r => r.json()),
+      fetch(`https://uk.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,nutriments&sort_by=unique_scans_n`).then(r => r.json()),
+    ]);
+
     let foods = [];
-    try {
-      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(usQuery)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
-      const data = await res.json();
-      foods = (data.foods || []).slice(0, 8);
-    } catch(_) {}
+
+    if (usdaRes.status === 'fulfilled') {
+      foods = (usdaRes.value.foods || []).slice(0, 5);
+    }
+
+    if (ukRes.status === 'fulfilled') {
+      const ukFoods = (ukRes.value.products || [])
+        .filter(p => p.product_name && /^[a-zA-Z0-9 &'()\-.,]+$/.test(p.product_name))
+        .slice(0, 5)
+        .map(p => ({
+          description: p.product_name,
+          foodNutrients: [
+            { nutrientNumber: 203, nutrientName: 'Protein',           value: p.nutriments?.proteins_100g      || 0 },
+            { nutrientNumber: 205, nutrientName: 'Carbohydrate',      value: p.nutriments?.carbohydrates_100g || 0 },
+            { nutrientNumber: 204, nutrientName: 'Total lipid (fat)', value: p.nutriments?.fat_100g           || 0 },
+          ],
+          _source: 'UK'
+        }));
+      foods = [...foods, ...ukFoods].slice(0, 8);
+    }
 
     function getNutrient(nutrients, nameFragment, number) {
       const n = nutrients.find(n =>
