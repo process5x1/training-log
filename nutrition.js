@@ -127,10 +127,13 @@ function renderHome() {
     const pickerBtns = MEALS.map(m =>
       `<button class="meal-pick-btn ${m.toLowerCase()}" data-meal="${m}" data-i="${i}">${m}</button>`
     ).join('') + (meal ? `<button class="meal-pick-btn" data-meal="" data-i="${i}">Clear</button>` : '');
+    const qty = item.unit === 'pcs' && item.pieces
+      ? `${item.pieces} pcs`
+      : (item.grams ? `${item.grams}${item.unit || 'g'}` : '');
     return `
       <div class="log-item">
         <div class="log-item-body" data-i="${i}" style="flex:1;cursor:pointer">
-          <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}${item.unit || 'g'}` : ''}</div>
+          <div class="log-item-name">${item.name}${qty ? ` — ${qty}` : ''}</div>
           <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
           <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
@@ -339,9 +342,8 @@ function showFoodDetail(fromEdit = false) {
   if (!fromEdit) {
     editingIndex = null;
     document.getElementById('addFoodBtn').textContent = 'Add to Log';
-    selectedUnit = 'g';
-    document.getElementById('unitG').classList.add('selected');
-    document.getElementById('unitMl').classList.remove('selected');
+    setPanelUnit('g');
+    document.getElementById('perPieceWrap').style.display = 'none';
   }
   const detail = document.getElementById('foodDetail');
   detail.classList.remove('hidden');
@@ -351,23 +353,31 @@ function showFoodDetail(fromEdit = false) {
   updateDetailMacros();
 }
 
-document.getElementById('unitG').addEventListener('click', () => {
-  selectedUnit = 'g';
-  document.getElementById('unitG').classList.add('selected');
-  document.getElementById('unitMl').classList.remove('selected');
-});
-
-document.getElementById('unitMl').addEventListener('click', () => {
-  selectedUnit = 'ml';
-  document.getElementById('unitMl').classList.add('selected');
-  document.getElementById('unitG').classList.remove('selected');
-});
+function setPanelUnit(unit) {
+  selectedUnit = unit;
+  document.getElementById('unitG').classList.toggle('selected', unit === 'g');
+  document.getElementById('unitMl').classList.toggle('selected', unit === 'ml');
+  document.getElementById('unitPcs').classList.toggle('selected', unit === 'pcs');
+  document.getElementById('perPieceWrap').style.display = unit === 'pcs' ? 'flex' : 'none';
+  updateDetailMacros();
+}
+document.getElementById('unitG').addEventListener('click', () => setPanelUnit('g'));
+document.getElementById('unitMl').addEventListener('click', () => setPanelUnit('ml'));
+document.getElementById('unitPcs').addEventListener('click', () => setPanelUnit('pcs'));
 
 document.getElementById('gramInput').addEventListener('input', updateDetailMacros);
+document.getElementById('perPieceInput').addEventListener('input', updateDetailMacros);
 
 function updateDetailMacros() {
   if (!selectedFood) return;
-  const g = parseFloat(document.getElementById('gramInput').value) || 0;
+  let g;
+  if (selectedUnit === 'pcs') {
+    const pieces   = parseFloat(document.getElementById('gramInput').value)    || 0;
+    const perPiece = parseFloat(document.getElementById('perPieceInput').value) || 0;
+    g = pieces * perPiece;
+  } else {
+    g = parseFloat(document.getElementById('gramInput').value) || 0;
+  }
   const r = g / 100;
   document.getElementById('detailProtein').textContent = Math.round(selectedFood.protein100 * r * 10) / 10 + 'g';
   document.getElementById('detailCarbs').textContent   = Math.round(selectedFood.carbs100   * r * 10) / 10 + 'g';
@@ -375,7 +385,14 @@ function updateDetailMacros() {
 }
 
 document.getElementById('addFoodBtn').addEventListener('click', () => {
-  const g   = parseFloat(document.getElementById('gramInput').value) || 100;
+  let g, pieces, perPiece;
+  if (selectedUnit === 'pcs') {
+    pieces   = parseFloat(document.getElementById('gramInput').value)    || 1;
+    perPiece = parseFloat(document.getElementById('perPieceInput').value) || 100;
+    g = pieces * perPiece;
+  } else {
+    g = parseFloat(document.getElementById('gramInput').value) || 100;
+  }
   const r   = g / 100;
   const log = getLog();
   const entry = {
@@ -388,6 +405,7 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
     p100:    selectedFood.protein100,
     c100:    selectedFood.carbs100,
     f100:    selectedFood.fat100,
+    ...(selectedUnit === 'pcs' && { pieces, perPiece }),
   };
 
   if (editingIndex !== null) {
@@ -412,7 +430,14 @@ let modalFood = null;
 
 function updateModalMacros() {
   if (!modalFood) return;
-  const g = parseFloat(document.getElementById('modalGrams').value) || 0;
+  let g;
+  if (modalUnit === 'pcs') {
+    const pieces   = parseFloat(document.getElementById('modalGrams').value)   || 0;
+    const perPiece = parseFloat(document.getElementById('modalPerPiece').value) || 0;
+    g = pieces * perPiece;
+  } else {
+    g = parseFloat(document.getElementById('modalGrams').value) || 0;
+  }
   const r = g / 100;
   document.getElementById('modalProtein').textContent = Math.round(modalFood.protein100 * r * 10) / 10 + 'g';
   document.getElementById('modalCarbs').textContent   = Math.round(modalFood.carbs100   * r * 10) / 10 + 'g';
@@ -423,16 +448,19 @@ function openEditModal(i) {
   const item = getLog()[i];
   const g    = item.grams || 100;
   editingIndex = i;
-  modalUnit = item.unit || 'g';
   modalFood = {
     protein100: item.p100 ?? (item.protein / g * 100),
     carbs100:   item.c100 ?? (item.carbs   / g * 100),
     fat100:     item.f100 ?? (item.fat     / g * 100),
   };
   document.getElementById('modalFoodName').textContent = item.name;
-  document.getElementById('modalGrams').value = g;
-  document.getElementById('modalUnitG').classList.toggle('selected', modalUnit === 'g');
-  document.getElementById('modalUnitMl').classList.toggle('selected', modalUnit === 'ml');
+  setModalUnit(item.unit || 'g');
+  if (item.unit === 'pcs' && item.pieces) {
+    document.getElementById('modalGrams').value    = item.pieces;
+    document.getElementById('modalPerPiece').value = item.perPiece || 55;
+  } else {
+    document.getElementById('modalGrams').value = g;
+  }
   updateModalMacros();
   document.getElementById('editModal').classList.remove('hidden');
 }
@@ -444,18 +472,19 @@ function closeEditModal() {
 }
 
 document.getElementById('modalGrams').addEventListener('input', updateModalMacros);
+document.getElementById('modalPerPiece').addEventListener('input', updateModalMacros);
 
-document.getElementById('modalUnitG').addEventListener('click', () => {
-  modalUnit = 'g';
-  document.getElementById('modalUnitG').classList.add('selected');
-  document.getElementById('modalUnitMl').classList.remove('selected');
-});
-
-document.getElementById('modalUnitMl').addEventListener('click', () => {
-  modalUnit = 'ml';
-  document.getElementById('modalUnitMl').classList.add('selected');
-  document.getElementById('modalUnitG').classList.remove('selected');
-});
+function setModalUnit(unit) {
+  modalUnit = unit;
+  document.getElementById('modalUnitG').classList.toggle('selected', unit === 'g');
+  document.getElementById('modalUnitMl').classList.toggle('selected', unit === 'ml');
+  document.getElementById('modalUnitPcs').classList.toggle('selected', unit === 'pcs');
+  document.getElementById('modalPerPieceWrap').style.display = unit === 'pcs' ? 'flex' : 'none';
+  updateModalMacros();
+}
+document.getElementById('modalUnitG').addEventListener('click', () => setModalUnit('g'));
+document.getElementById('modalUnitMl').addEventListener('click', () => setModalUnit('ml'));
+document.getElementById('modalUnitPcs').addEventListener('click', () => setModalUnit('pcs'));
 
 document.getElementById('modalCancel').addEventListener('click', closeEditModal);
 
@@ -465,9 +494,16 @@ document.getElementById('editModal').addEventListener('click', e => {
 
 document.getElementById('modalSave').addEventListener('click', () => {
   if (editingIndex === null || !modalFood) return;
-  const g   = parseFloat(document.getElementById('modalGrams').value) || 100;
-  const r   = g / 100;
-  const log = getLog();
+  let g, pieces, perPiece;
+  if (modalUnit === 'pcs') {
+    pieces   = parseFloat(document.getElementById('modalGrams').value)   || 1;
+    perPiece = parseFloat(document.getElementById('modalPerPiece').value) || 100;
+    g = pieces * perPiece;
+  } else {
+    g = parseFloat(document.getElementById('modalGrams').value) || 100;
+  }
+  const r    = g / 100;
+  const log  = getLog();
   const prev = log[editingIndex];
   log[editingIndex] = {
     name:    prev.name,
@@ -480,6 +516,7 @@ document.getElementById('modalSave').addEventListener('click', () => {
     c100:    modalFood.carbs100,
     f100:    modalFood.fat100,
     meal:    prev.meal,
+    ...(modalUnit === 'pcs' && { pieces, perPiece }),
   };
   saveLog(log);
   closeEditModal();

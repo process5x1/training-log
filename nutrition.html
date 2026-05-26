@@ -90,9 +90,15 @@
       </div>
       <div class="gram-input-wrap">
         <input class="gram-input" id="gramInput" type="number" value="100" min="1" />
-        <div style="display:flex;gap:4px">
+        <div id="perPieceWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
+          <span style="font-size:13px;color:#94a3b8">×</span>
+          <input class="gram-input" id="perPieceInput" type="number" value="55" min="1" style="width:76px" />
+          <span style="font-size:12px;color:#64748b">g ea</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="unit-chip selected" id="unitG">g</button>
           <button class="unit-chip" id="unitMl">ml</button>
+          <button class="unit-chip" id="unitPcs">pcs</button>
         </div>
       </div>
       <button class="btn-primary" id="addFoodBtn">Add to Log</button>
@@ -227,9 +233,15 @@
       </div>
       <div class="gram-input-wrap">
         <input class="gram-input" id="modalGrams" type="number" value="100" min="1" />
-        <div style="display:flex;gap:4px">
+        <div id="modalPerPieceWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
+          <span style="font-size:13px;color:#94a3b8">×</span>
+          <input class="gram-input" id="modalPerPiece" type="number" value="55" min="1" style="width:76px" />
+          <span style="font-size:12px;color:#64748b">g ea</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="unit-chip selected" id="modalUnitG">g</button>
           <button class="unit-chip" id="modalUnitMl">ml</button>
+          <button class="unit-chip" id="modalUnitPcs">pcs</button>
         </div>
       </div>
       <div class="modal-actions">
