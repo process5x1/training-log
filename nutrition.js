@@ -152,7 +152,7 @@ document.getElementById('quickSearch').addEventListener('input', e => {
   const q = e.target.value.trim();
   document.getElementById('foodDetail').classList.add('hidden');
   document.getElementById('manualEntry').classList.add('hidden');
-  if (q.length < 2) { document.getElementById('searchResults').classList.add('hidden'); return; }
+  if (q.length < 4) { document.getElementById('searchResults').classList.add('hidden'); return; }
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => runSearch(q), 400);
 });
