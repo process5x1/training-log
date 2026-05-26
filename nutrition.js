@@ -51,6 +51,45 @@ function showScreen(id) {
   document.getElementById(id).style.display = 'flex';
 }
 
+// ── Frequent foods ──
+function getFrequentFoods(limit = 8) {
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  const map = {};
+  Object.values(all).forEach(dayLog => {
+    dayLog.forEach(item => {
+      const key = item.name.toLowerCase();
+      if (!map[key]) map[key] = { ...item, count: 0 };
+      map[key].count++;
+    });
+  });
+  return Object.values(map).sort((a, b) => b.count - a.count).slice(0, limit);
+}
+
+function renderFrequent() {
+  const foods = getFrequentFoods();
+  const wrap = document.getElementById('frequentWrap');
+  const list = document.getElementById('frequentList');
+  if (!foods.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  list.innerHTML = foods.map((f, i) => `<button class="freq-chip" data-i="${i}">${f.name}</button>`).join('');
+  list.querySelectorAll('.freq-chip').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      const f = foods[i];
+      const grams = f.grams || 100;
+      selectedFood = {
+        name:       f.name,
+        protein100: f.p100 ?? (f.protein / grams * 100),
+        carbs100:   f.c100 ?? (f.carbs   / grams * 100),
+        fat100:     f.f100 ?? (f.fat     / grams * 100),
+        source:     'Frequent'
+      };
+      document.getElementById('quickSearch').value = '';
+      document.getElementById('searchResults').classList.add('hidden');
+      showFoodDetail();
+    });
+  });
+}
+
 // ── Home ──
 function renderHome() {
   const log     = getLog();
@@ -67,6 +106,8 @@ function renderHome() {
   document.getElementById('valProtein').textContent  = `${Math.round(p)} / ${targets.protein}g`;
   document.getElementById('valCarbs').textContent    = `${Math.round(c)} / ${targets.carbs}g`;
   document.getElementById('valFat').textContent      = `${Math.round(f)} / ${targets.fat}g`;
+
+  renderFrequent();
 
   const list = document.getElementById('logList');
   if (!log.length) {
@@ -91,9 +132,13 @@ function renderHome() {
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
           <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-left:10px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding-left:10px">
           <button class="log-item-delete" data-i="${i}">×</button>
           <button class="log-item-dupe" data-i="${i}" title="Duplicate">⧉</button>
+          <div class="dupe-picker hidden" data-dupe="${i}">
+            <button class="dupe-pick-btn" data-day="same" data-i="${i}">Today</button>
+            <button class="dupe-pick-btn tomorrow" data-day="next" data-i="${i}">Tomorrow</button>
+          </div>
         </div>
       </div>`;
   }).join('');
@@ -124,10 +169,34 @@ function renderHome() {
   });
 
   list.querySelectorAll('.log-item-dupe').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const picker = list.querySelector(`[data-dupe="${btn.dataset.i}"]`);
+      list.querySelectorAll('.dupe-picker').forEach(p => { if (p !== picker) p.classList.add('hidden'); });
+      picker.classList.toggle('hidden');
+    });
+  });
+
+  list.querySelectorAll('.dupe-pick-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
       const l = getLog();
-      l.push({ ...l[+btn.dataset.i] });
-      saveLog(l); renderHome();
+      const item = { ...l[+btn.dataset.i] };
+      if (btn.dataset.day === 'same') {
+        l.push(item);
+        saveLog(l);
+        renderHome();
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() + dateOffset + 1);
+        const nextKey = d.toISOString().slice(0, 10);
+        const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (!all[nextKey]) all[nextKey] = [];
+        all[nextKey].push(item);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+        btn.textContent = '✓';
+        setTimeout(() => renderHome(), 700);
+      }
     });
   });
 }
@@ -143,7 +212,7 @@ document.getElementById('nextDay').addEventListener('click', () => {
 });
 
 document.addEventListener('click', () => {
-  document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.meal-picker, .dupe-picker').forEach(p => p.classList.add('hidden'));
 });
 
 // ── Inline search on home ──
@@ -304,7 +373,7 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
   const g = parseFloat(document.getElementById('gramInput').value) || 100;
   const r = g / 100;
   const log = getLog();
-  log.push({ name: selectedFood.name, grams: g, unit: selectedUnit, protein: selectedFood.protein100 * r, carbs: selectedFood.carbs100 * r, fat: selectedFood.fat100 * r });
+  log.push({ name: selectedFood.name, grams: g, unit: selectedUnit, protein: selectedFood.protein100 * r, carbs: selectedFood.carbs100 * r, fat: selectedFood.fat100 * r, p100: selectedFood.protein100, c100: selectedFood.carbs100, f100: selectedFood.fat100 });
   saveLog(log);
   selectedFood = null;
   document.getElementById('foodDetail').classList.add('hidden');
