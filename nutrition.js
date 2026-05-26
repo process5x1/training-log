@@ -56,7 +56,9 @@ function getFrequentFoods(limit = 8) {
   const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   const map = {};
   Object.values(all).forEach(dayLog => {
+    if (!Array.isArray(dayLog)) return;
     dayLog.forEach(item => {
+      if (!item.name) return;
       const key = item.name.toLowerCase();
       if (!map[key]) map[key] = { ...item, count: 0 };
       map[key].count++;
@@ -132,13 +134,10 @@ function renderHome() {
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
           <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding-left:10px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-left:10px">
           <button class="log-item-delete" data-i="${i}">×</button>
-          <button class="log-item-dupe" data-i="${i}" title="Duplicate">⧉</button>
-          <div class="dupe-picker hidden" data-dupe="${i}">
-            <button class="dupe-pick-btn" data-day="same" data-i="${i}">Today</button>
-            <button class="dupe-pick-btn tomorrow" data-day="next" data-i="${i}">Tomorrow</button>
-          </div>
+          <button class="log-item-dupe" data-i="${i}" title="Duplicate today">⧉</button>
+          <button class="log-item-tomorrow" data-i="${i}" title="Copy to tomorrow">→</button>
         </div>
       </div>`;
   }).join('');
@@ -169,34 +168,26 @@ function renderHome() {
   });
 
   list.querySelectorAll('.log-item-dupe').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const picker = list.querySelector(`[data-dupe="${btn.dataset.i}"]`);
-      list.querySelectorAll('.dupe-picker').forEach(p => { if (p !== picker) p.classList.add('hidden'); });
-      picker.classList.toggle('hidden');
+    btn.addEventListener('click', () => {
+      const l = getLog();
+      l.push({ ...l[+btn.dataset.i] });
+      saveLog(l); renderHome();
     });
   });
 
-  list.querySelectorAll('.dupe-pick-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
+  list.querySelectorAll('.log-item-tomorrow').forEach(btn => {
+    btn.addEventListener('click', () => {
       const l = getLog();
       const item = { ...l[+btn.dataset.i] };
-      if (btn.dataset.day === 'same') {
-        l.push(item);
-        saveLog(l);
-        renderHome();
-      } else {
-        const d = new Date();
-        d.setDate(d.getDate() + dateOffset + 1);
-        const nextKey = d.toISOString().slice(0, 10);
-        const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        if (!all[nextKey]) all[nextKey] = [];
-        all[nextKey].push(item);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-        btn.textContent = '✓';
-        setTimeout(() => renderHome(), 700);
-      }
+      const d = new Date();
+      d.setDate(d.getDate() + dateOffset + 1);
+      const nextKey = d.toISOString().slice(0, 10);
+      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if (!all[nextKey]) all[nextKey] = [];
+      all[nextKey].push(item);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = '→'; }, 1000);
     });
   });
 }
@@ -212,7 +203,7 @@ document.getElementById('nextDay').addEventListener('click', () => {
 });
 
 document.addEventListener('click', () => {
-  document.querySelectorAll('.meal-picker, .dupe-picker').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
 });
 
 // ── Inline search on home ──
