@@ -215,13 +215,15 @@ body {
 .log-item-tomorrow {
   background: none;
   border: none;
-  color: #94a3b8;
-  font-size: 14px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
   padding: 0;
   font-family: inherit;
 }
-.log-item-tomorrow:active { color: #2563eb; }
+.log-item-tomorrow:active { opacity: 0.6; }
 
 .empty-log {
   font-size: 13px;

@@ -134,10 +134,12 @@ function renderHome() {
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
           <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-left:10px">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding-left:10px">
           <button class="log-item-delete" data-i="${i}">×</button>
-          <button class="log-item-dupe" data-i="${i}" title="Duplicate today">⧉</button>
-          <button class="log-item-tomorrow" data-i="${i}" title="Copy to tomorrow">→</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="log-item-tomorrow" data-i="${i}" title="Copy to tomorrow">→ tmr</button>
+            <button class="log-item-dupe" data-i="${i}" title="Duplicate today">⧉</button>
+          </div>
         </div>
       </div>`;
   }).join('');
