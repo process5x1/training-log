@@ -169,27 +169,6 @@ async function runSearch(q) {
       foods = (data.foods || []).slice(0, 8);
     } catch(_) {}
 
-    // Fallback to Open Food Facts only if USDA returns nothing
-    if (!foods.length) {
-      try {
-        const res2 = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments,lang&lc=en&sort_by=unique_scans_n`);
-        const data2 = await res2.json();
-        foods = (data2.products || [])
-          .filter(p => p.product_name &&
-            (!p.lang || p.lang === 'en') &&
-            /^[a-zA-Z0-9 &'()\-.,]+$/.test(p.product_name))
-          .slice(0, 8).map(p => ({
-            description: p.product_name,
-            foodNutrients: [
-              { nutrientNumber: 203, nutrientName: 'Protein',           value: p.nutriments?.proteins_100g      || 0 },
-              { nutrientNumber: 205, nutrientName: 'Carbohydrate',      value: p.nutriments?.carbohydrates_100g || 0 },
-              { nutrientNumber: 204, nutrientName: 'Total lipid (fat)', value: p.nutriments?.fat_100g           || 0 },
-            ],
-            _source: 'Open Food Facts'
-          }));
-      } catch(_) {}
-    }
-
     function getNutrient(nutrients, nameFragment, number) {
       const n = nutrients.find(n =>
         n.nutrientNumber === number ||
