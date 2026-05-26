@@ -157,14 +157,31 @@ document.getElementById('quickSearch').addEventListener('input', e => {
   searchTimer = setTimeout(() => runSearch(q), 400);
 });
 
+const BRITISH_TO_AMERICAN = {
+  'sweetcorn':    'sweet corn',
+  'aubergine':    'eggplant',
+  'courgette':    'zucchini',
+  'coriander':    'cilantro',
+  'rocket':       'arugula',
+  'mangetout':    'snow peas',
+  'spring onion': 'green onion',
+  'swede':        'rutabaga',
+  'mince':        'ground beef',
+  'crisps':       'potato chips',
+  'chips':        'french fries',
+  'prawns':       'shrimp',
+  'minced beef':  'ground beef',
+};
+
 async function runSearch(q) {
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
   try {
+    const usQuery = BRITISH_TO_AMERICAN[q.toLowerCase()] || q;
     let foods = [];
     try {
-      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
+      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(usQuery)}&api_key=${USDA_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
       const data = await res.json();
       foods = (data.foods || []).slice(0, 8);
     } catch(_) {}
