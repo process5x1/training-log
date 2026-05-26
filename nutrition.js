@@ -162,23 +162,34 @@ async function runSearch(q) {
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
   try {
-    const BRITISH = {
-      'sweetcorn': 'sweet corn', 'aubergine': 'eggplant', 'courgette': 'zucchini',
-      'coriander': 'cilantro', 'rocket': 'arugula', 'mangetout': 'snow peas',
-      'spring onion': 'green onion', 'swede': 'rutabaga', 'mince': 'ground beef',
-      'crisps': 'potato chips', 'chips': 'french fries', 'prawns': 'shrimp',
-      'minced beef': 'ground beef', 'minced chicken': 'ground chicken',
-      'full fat milk': 'whole milk', 'semi skimmed milk': 'reduced fat milk',
-      'jacket potato': 'baked potato', 'butternut squash': 'butternut squash',
-    };
-    const usdaQ   = BRITISH[q.toLowerCase()] || q;
-    const usdaKey = getSettings().usdaKey || USDA_KEY;
     let foods = [];
 
     try {
-      const res  = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(usdaQ)}&api_key=${usdaKey}&pageSize=10&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
+      const res  = await fetch(`https://uk.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=product_name,nutriments,generic_name&sort_by=unique_scans_n`);
       const data = await res.json();
-      foods = (data.foods || []).slice(0, 8);
+
+      const isEnglish = name =>
+        /^[a-zA-Z0-9 &'()\-.,!%]+$/.test(name) &&
+        !/^[A-Z\s&0-9,.-]+$/.test(name) &&
+        name.length >= 2 && name.length <= 80;
+
+      foods = (data.products || [])
+        .filter(p => {
+          const name = p.generic_name || p.product_name;
+          if (!name || !isEnglish(name)) return false;
+          const n = p.nutriments || {};
+          return (n.proteins_100g || 0) + (n.carbohydrates_100g || 0) + (n.fat_100g || 0) > 0;
+        })
+        .slice(0, 8)
+        .map(p => ({
+          description: p.generic_name || p.product_name,
+          foodNutrients: [
+            { nutrientNumber: 203, value: p.nutriments.proteins_100g      || 0 },
+            { nutrientNumber: 205, value: p.nutriments.carbohydrates_100g || 0 },
+            { nutrientNumber: 204, value: p.nutriments.fat_100g           || 0 },
+          ],
+          _source: 'Open Food Facts'
+        }));
     } catch(_) {}
 
     function getNutrient(nutrients, nameFragment, number) {
@@ -577,7 +588,6 @@ document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsF
 document.getElementById('openSettings').addEventListener('click', () => {
   const s = getSettings();
   document.getElementById('apiKeyInput').value    = s.apiKey   || '';
-  document.getElementById('usdaKeyInput').value   = s.usdaKey  || '';
   document.getElementById('targetCalories').value = s.calories || 2000;
   document.getElementById('targetProtein').value  = s.protein  || 150;
   document.getElementById('targetCarbs').value    = s.carbs    || 200;
@@ -596,7 +606,6 @@ document.getElementById('settingsBack').addEventListener('click', () => { showSc
 document.getElementById('saveSettings').addEventListener('click', () => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({
     apiKey:   document.getElementById('apiKeyInput').value.trim(),
-    usdaKey:  document.getElementById('usdaKeyInput').value.trim(),
     calories: +document.getElementById('targetCalories').value || 2000,
     protein:  +document.getElementById('targetProtein').value  || 150,
     carbs:    +document.getElementById('targetCarbs').value    || 200,
