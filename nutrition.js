@@ -3,6 +3,7 @@ const SETTINGS_KEY = 'nutritionSettings';
 const USDA_KEY     = 'DEMO_KEY';
 
 let selectedFood = null;
+let selectedUnit = 'g';
 let scanner      = null;
 let dateOffset   = 0;
 
@@ -85,7 +86,7 @@ function renderHome() {
     return `
       <div class="log-item">
         <div style="flex:1">
-          <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}g` : ''}</div>
+          <div class="log-item-name">${item.name}${item.grams ? ` — ${item.grams}${item.unit || 'g'}` : ''}</div>
           <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
           <span class="${mealCls}" data-i="${i}">${mealLabel}</span>
           <div class="meal-picker hidden" data-picker="${i}">${pickerBtns}</div>
@@ -263,6 +264,9 @@ document.getElementById('manualAddBtn').addEventListener('click', () => {
 });
 
 function showFoodDetail() {
+  selectedUnit = 'g';
+  document.getElementById('unitG').classList.add('selected');
+  document.getElementById('unitMl').classList.remove('selected');
   const detail = document.getElementById('foodDetail');
   detail.classList.remove('hidden');
   document.getElementById('detailName').textContent   = selectedFood.name;
@@ -270,6 +274,18 @@ function showFoodDetail() {
   document.getElementById('gramInput').value          = 100;
   updateDetailMacros();
 }
+
+document.getElementById('unitG').addEventListener('click', () => {
+  selectedUnit = 'g';
+  document.getElementById('unitG').classList.add('selected');
+  document.getElementById('unitMl').classList.remove('selected');
+});
+
+document.getElementById('unitMl').addEventListener('click', () => {
+  selectedUnit = 'ml';
+  document.getElementById('unitMl').classList.add('selected');
+  document.getElementById('unitG').classList.remove('selected');
+});
 
 document.getElementById('gramInput').addEventListener('input', updateDetailMacros);
 
@@ -286,7 +302,7 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
   const g = parseFloat(document.getElementById('gramInput').value) || 100;
   const r = g / 100;
   const log = getLog();
-  log.push({ name: selectedFood.name, grams: g, protein: selectedFood.protein100 * r, carbs: selectedFood.carbs100 * r, fat: selectedFood.fat100 * r });
+  log.push({ name: selectedFood.name, grams: g, unit: selectedUnit, protein: selectedFood.protein100 * r, carbs: selectedFood.carbs100 * r, fat: selectedFood.fat100 * r });
   saveLog(log);
   selectedFood = null;
   document.getElementById('foodDetail').classList.add('hidden');

@@ -84,7 +84,10 @@
       </div>
       <div class="gram-input-wrap">
         <input class="gram-input" id="gramInput" type="number" value="100" min="1" />
-        <span class="gram-label">grams</span>
+        <div style="display:flex;gap:4px">
+          <button class="unit-chip selected" id="unitG">g</button>
+          <button class="unit-chip" id="unitMl">ml</button>
+        </div>
       </div>
       <button class="btn-primary" id="addFoodBtn">Add to Log</button>
     </div>
