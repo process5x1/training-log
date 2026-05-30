@@ -57,7 +57,8 @@
 
     <!-- Inline search -->
     <div class="search-wrap" style="width:100%;max-width:380px;margin-bottom:10px">
-      <input class="text-input" id="quickSearch" type="text" placeholder="Food name — press Enter" autocomplete="off" />
+      <input class="text-input" id="quickSearch" type="text" placeholder="Search food…" autocomplete="off" />
+      <div class="search-results hidden" id="searchResults"></div>
     </div>
 
     <div id="manualEntry" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
@@ -145,9 +146,19 @@
     <div class="screen-title">Settings</div>
 
     <!-- API Key -->
-    <div class="settings-section-title" style="width:100%;max-width:380px">API Key</div>
+    <div class="settings-section-title" style="width:100%;max-width:380px">Claude API Key</div>
     <input class="text-input" id="apiKeyInput" type="password" placeholder="sk-ant-…" />
-    <div class="settings-note">Get a key at console.anthropic.com — stored only in your browser, never sent anywhere.</div>
+    <div class="settings-note">Get a key at console.anthropic.com — stored only in your browser.</div>
+
+    <!-- Nutritionix -->
+    <div class="settings-section">
+      <div class="settings-section-title">Nutritionix (Food Search)</div>
+      <div style="display:flex;gap:8px;width:100%;max-width:380px">
+        <input class="text-input" id="nixAppId"  type="text"     placeholder="App ID"  style="flex:1;font-size:13px;padding:12px 14px" />
+        <input class="text-input" id="nixAppKey" type="password" placeholder="App Key" style="flex:1;font-size:13px;padding:12px 14px" />
+      </div>
+      <div class="settings-note">Free at developer.nutritionix.com — 500 searches/day. Stored only in your browser.</div>
+    </div>
 
     <!-- Personal Profile -->
     <div class="settings-section">
