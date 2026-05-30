@@ -91,6 +91,30 @@ function renderFrequent() {
   });
 }
 
+// ── Meal stats ──
+function renderMealStats(log) {
+  const el    = document.getElementById('mealStats');
+  const ORDER = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+  const groups = {};
+  log.forEach(item => {
+    if (!item.meal) return;
+    const g = groups[item.meal] || (groups[item.meal] = { p: 0, c: 0, f: 0 });
+    g.p += item.protein; g.c += item.carbs; g.f += item.fat;
+  });
+  const meals = ORDER.filter(m => groups[m]);
+  if (!meals.length) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.innerHTML = meals.map(meal => {
+    const g    = groups[meal];
+    const kcal = Math.round(g.p * 4 + g.c * 4 + g.f * 9);
+    return `<div class="meal-stat-row">
+      <span class="meal-stat-name ${meal.toLowerCase()}">${meal}</span>
+      <span class="meal-stat-macros">P ${Math.round(g.p)}g · C ${Math.round(g.c)}g · F ${Math.round(g.f)}g</span>
+      <span class="meal-stat-kcal">${kcal} kcal</span>
+    </div>`;
+  }).join('');
+}
+
 // ── Home ──
 function renderHome() {
   const log     = getLog();
@@ -109,6 +133,7 @@ function renderHome() {
   document.getElementById('valFat').textContent      = `${Math.round(f)} / ${targets.fat}g`;
 
   renderFrequent();
+  renderMealStats(log);
 
   const list = document.getElementById('logList');
   if (!log.length) {

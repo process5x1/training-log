@@ -169,6 +169,42 @@ body {
   flex-shrink: 0;
 }
 
+.meal-stats {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.meal-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.meal-stat-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  width: 72px;
+}
+.meal-stat-name.breakfast { color: #92400e; }
+.meal-stat-name.lunch     { color: #166534; }
+.meal-stat-name.dinner    { color: #5b21b6; }
+.meal-stat-name.snack     { color: #9a3412; }
+
+.meal-stat-macros { font-size: 11px; color: #94a3b8; flex: 1; }
+.meal-stat-kcal   { font-size: 13px; font-weight: 600; color: #0f172a; flex-shrink: 0; }
+
 .log-list {
   width: 100%;
   max-width: 380px;
