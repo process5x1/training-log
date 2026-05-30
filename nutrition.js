@@ -1,5 +1,6 @@
 const STORAGE_KEY  = 'nutritionLog_v1';
 const SETTINGS_KEY = 'nutritionSettings';
+const WATER_KEY    = 'waterLog_v1';
 
 let selectedFood  = null;
 let selectedUnit  = 'g';
@@ -13,7 +14,18 @@ function getSettings() {
 
 function getTargets() {
   const s = getSettings();
-  return { calories: s.calories || 2000, protein: s.protein || 150, carbs: s.carbs || 200, fat: s.fat || 65 };
+  return { calories: s.calories || 2000, protein: s.protein || 150, carbs: s.carbs || 200, fat: s.fat || 65, fiber: s.fiber || 25, water: s.water || 2000 };
+}
+
+function getWater() {
+  const all = JSON.parse(localStorage.getItem(WATER_KEY) || '{}');
+  return all[getDateKey()] || 0;
+}
+
+function saveWater(ml) {
+  const all = JSON.parse(localStorage.getItem(WATER_KEY) || '{}');
+  all[getDateKey()] = Math.max(0, ml);
+  localStorage.setItem(WATER_KEY, JSON.stringify(all));
 }
 
 function getDateKey() {
@@ -119,18 +131,23 @@ function renderMealStats(log) {
 function renderHome() {
   const log     = getLog();
   const targets = getTargets();
-  let p = 0, c = 0, f = 0;
-  log.forEach(item => { p += item.protein; c += item.carbs; f += item.fat; });
-  const cal = Math.round(p * 4 + c * 4 + f * 9);
+  let p = 0, c = 0, f = 0, fib = 0;
+  log.forEach(item => { p += item.protein; c += item.carbs; f += item.fat; fib += (item.fiber || 0); });
+  const cal   = Math.round(p * 4 + c * 4 + f * 9);
+  const water = getWater();
 
   document.getElementById('barCalories').style.width = Math.min(100, cal / targets.calories * 100) + '%';
-  document.getElementById('barProtein').style.width  = Math.min(100, p / targets.protein   * 100) + '%';
-  document.getElementById('barCarbs').style.width    = Math.min(100, c / targets.carbs     * 100) + '%';
-  document.getElementById('barFat').style.width      = Math.min(100, f / targets.fat       * 100) + '%';
+  document.getElementById('barProtein').style.width  = Math.min(100, p   / targets.protein  * 100) + '%';
+  document.getElementById('barCarbs').style.width    = Math.min(100, c   / targets.carbs    * 100) + '%';
+  document.getElementById('barFat').style.width      = Math.min(100, f   / targets.fat      * 100) + '%';
+  document.getElementById('barFiber').style.width    = Math.min(100, fib / targets.fiber    * 100) + '%';
+  document.getElementById('barWater').style.width    = Math.min(100, water / targets.water  * 100) + '%';
   document.getElementById('valCalories').textContent = `${cal} / ${targets.calories}`;
   document.getElementById('valProtein').textContent  = `${Math.round(p)} / ${targets.protein}g`;
   document.getElementById('valCarbs').textContent    = `${Math.round(c)} / ${targets.carbs}g`;
   document.getElementById('valFat').textContent      = `${Math.round(f)} / ${targets.fat}g`;
+  document.getElementById('valFiber').textContent    = `${Math.round(fib)} / ${targets.fiber}g`;
+  document.getElementById('valWater').textContent    = `${water} / ${targets.water}ml`;
 
   renderFrequent();
   renderMealStats(log);
@@ -242,6 +259,17 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
 });
 
+// ── Water ──
+document.querySelectorAll('.water-btn[data-ml]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    saveWater(getWater() + +btn.dataset.ml);
+    renderHome();
+  });
+});
+document.getElementById('waterReset').addEventListener('click', () => {
+  saveWater(0); renderHome();
+});
+
 // ── Food search (USDA FoodData Central) ──
 const UK_TO_US = {
   'sweetcorn': 'sweet corn', 'courgette': 'zucchini', 'aubergine': 'eggplant',
@@ -328,6 +356,7 @@ async function runSearch(q) {
           protein100: usdaNutrient(food.foodNutrients, 203),
           carbs100:   usdaNutrient(food.foodNutrients, 205),
           fat100:     usdaNutrient(food.foodNutrients, 204),
+          fiber100:   usdaNutrient(food.foodNutrients, 291),
           source:     'USDA'
         };
         resultsEl.classList.add('hidden');
@@ -357,10 +386,11 @@ function showManualEntry(name) {
 
 document.getElementById('manualAddBtn').addEventListener('click', () => {
   const name = document.getElementById('manualName').value.trim() || 'Custom food';
-  const p = parseFloat(document.getElementById('manualP').value) || 0;
-  const c = parseFloat(document.getElementById('manualC').value) || 0;
-  const f = parseFloat(document.getElementById('manualF').value) || 0;
-  selectedFood = { name, protein100: p, carbs100: c, fat100: f, source: 'Manual entry' };
+  const p   = parseFloat(document.getElementById('manualP').value)   || 0;
+  const c   = parseFloat(document.getElementById('manualC').value)   || 0;
+  const f   = parseFloat(document.getElementById('manualF').value)   || 0;
+  const fib = parseFloat(document.getElementById('manualFib').value) || 0;
+  selectedFood = { name, protein100: p, carbs100: c, fat100: f, fiber100: fib, source: 'Manual entry' };
   document.getElementById('manualEntry').classList.add('hidden');
   showFoodDetail();
 });
@@ -417,9 +447,10 @@ function updateDetailMacros() {
     g = parseFloat(document.getElementById('gramInput').value) || 0;
   }
   const r = g / 100;
-  document.getElementById('detailProtein').textContent = Math.round(selectedFood.protein100 * r * 10) / 10 + 'g';
-  document.getElementById('detailCarbs').textContent   = Math.round(selectedFood.carbs100   * r * 10) / 10 + 'g';
-  document.getElementById('detailFat').textContent     = Math.round(selectedFood.fat100     * r * 10) / 10 + 'g';
+  document.getElementById('detailProtein').textContent = Math.round(selectedFood.protein100       * r * 10) / 10 + 'g';
+  document.getElementById('detailCarbs').textContent   = Math.round(selectedFood.carbs100         * r * 10) / 10 + 'g';
+  document.getElementById('detailFat').textContent     = Math.round(selectedFood.fat100           * r * 10) / 10 + 'g';
+  document.getElementById('detailFiber').textContent   = Math.round((selectedFood.fiber100 || 0)  * r * 10) / 10 + 'g';
 }
 
 document.getElementById('addFoodBtn').addEventListener('click', () => {
@@ -437,12 +468,14 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
     name:    selectedFood.name,
     grams:   g,
     unit:    selectedUnit,
-    protein: selectedFood.protein100 * r,
-    carbs:   selectedFood.carbs100   * r,
-    fat:     selectedFood.fat100     * r,
+    protein: selectedFood.protein100       * r,
+    carbs:   selectedFood.carbs100         * r,
+    fat:     selectedFood.fat100           * r,
+    fiber:   (selectedFood.fiber100 || 0)  * r,
     p100:    selectedFood.protein100,
     c100:    selectedFood.carbs100,
     f100:    selectedFood.fat100,
+    fib100:  selectedFood.fiber100 || 0,
     ...(selectedUnit === 'pcs' && { pieces, perPiece }),
   };
 
@@ -477,9 +510,10 @@ function updateModalMacros() {
     g = parseFloat(document.getElementById('modalGrams').value) || 0;
   }
   const r = g / 100;
-  document.getElementById('modalProtein').textContent = Math.round(modalFood.protein100 * r * 10) / 10 + 'g';
-  document.getElementById('modalCarbs').textContent   = Math.round(modalFood.carbs100   * r * 10) / 10 + 'g';
-  document.getElementById('modalFat').textContent     = Math.round(modalFood.fat100     * r * 10) / 10 + 'g';
+  document.getElementById('modalProtein').textContent = Math.round(modalFood.protein100       * r * 10) / 10 + 'g';
+  document.getElementById('modalCarbs').textContent   = Math.round(modalFood.carbs100         * r * 10) / 10 + 'g';
+  document.getElementById('modalFat').textContent     = Math.round(modalFood.fat100           * r * 10) / 10 + 'g';
+  document.getElementById('modalFiber').textContent   = Math.round((modalFood.fiber100 || 0)  * r * 10) / 10 + 'g';
 }
 
 function openEditModal(i) {
@@ -487,9 +521,10 @@ function openEditModal(i) {
   const g    = item.grams || 100;
   editingIndex = i;
   modalFood = {
-    protein100: item.p100 ?? (item.protein / g * 100),
-    carbs100:   item.c100 ?? (item.carbs   / g * 100),
-    fat100:     item.f100 ?? (item.fat     / g * 100),
+    protein100: item.p100   ?? (item.protein / g * 100),
+    carbs100:   item.c100   ?? (item.carbs   / g * 100),
+    fat100:     item.f100   ?? (item.fat     / g * 100),
+    fiber100:   item.fib100 ?? ((item.fiber  || 0) / g * 100),
   };
   document.getElementById('modalFoodName').textContent = item.name;
   setModalUnit(item.unit || 'g');
@@ -561,12 +596,14 @@ document.getElementById('modalSave').addEventListener('click', () => {
     name:    prev.name,
     grams:   g,
     unit:    modalUnit,
-    protein: modalFood.protein100 * r,
-    carbs:   modalFood.carbs100   * r,
-    fat:     modalFood.fat100     * r,
+    protein: modalFood.protein100       * r,
+    carbs:   modalFood.carbs100         * r,
+    fat:     modalFood.fat100           * r,
+    fiber:   (modalFood.fiber100 || 0)  * r,
     p100:    modalFood.protein100,
     c100:    modalFood.carbs100,
     f100:    modalFood.fat100,
+    fib100:  modalFood.fiber100 || 0,
     meal:    prev.meal,
     ...(modalUnit === 'pcs' && { pieces, perPiece }),
   };
@@ -853,6 +890,8 @@ document.getElementById('openSettings').addEventListener('click', () => {
   document.getElementById('targetProtein').value  = s.protein  || 150;
   document.getElementById('targetCarbs').value    = s.carbs    || 200;
   document.getElementById('targetFat').value      = s.fat      || 65;
+  document.getElementById('targetFiber').value    = s.fiber    || 25;
+  document.getElementById('targetWater').value    = s.water    || 2000;
   document.getElementById('profileWeight').value  = s.weight   || '';
   document.getElementById('profileHeight').value  = s.height   || '';
   document.getElementById('profileAge').value     = s.age      || '';
@@ -871,6 +910,8 @@ document.getElementById('saveSettings').addEventListener('click', () => {
     protein:  +document.getElementById('targetProtein').value  || 150,
     carbs:    +document.getElementById('targetCarbs').value    || 200,
     fat:      +document.getElementById('targetFat').value      || 65,
+    fiber:    +document.getElementById('targetFiber').value    || 25,
+    water:    +document.getElementById('targetWater').value    || 2000,
     weight:   +document.getElementById('profileWeight').value  || 0,
     height:   +document.getElementById('profileHeight').value  || 0,
     age:      +document.getElementById('profileAge').value     || 0,

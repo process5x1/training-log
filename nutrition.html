@@ -43,6 +43,23 @@
         <div class="macro-track"><div class="macro-fill fat" id="barFat" style="width:0%"></div></div>
         <span class="macro-val" id="valFat">0 / 65g</span>
       </div>
+      <div class="macro-row">
+        <span class="macro-label">Fiber</span>
+        <div class="macro-track"><div class="macro-fill fiber" id="barFiber" style="width:0%"></div></div>
+        <span class="macro-val" id="valFiber">0 / 25g</span>
+      </div>
+      <div class="macro-row" style="margin-top:4px">
+        <span class="macro-label">Water</span>
+        <div class="macro-track"><div class="macro-fill water" id="barWater" style="width:0%"></div></div>
+        <span class="macro-val" id="valWater">0 / 2000ml</span>
+      </div>
+      <div class="water-btns">
+        <button class="water-btn" data-ml="150">+150</button>
+        <button class="water-btn" data-ml="250">+250</button>
+        <button class="water-btn" data-ml="500">+500</button>
+        <button class="water-btn" data-ml="750">+750</button>
+        <button class="water-btn water-reset" id="waterReset">Reset</button>
+      </div>
     </div>
 
     <div id="mealStats" class="meal-stats hidden"></div>
@@ -66,9 +83,10 @@
     <div id="manualEntry" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
       <input class="text-input" id="manualName" type="text" placeholder="Food name" />
       <div style="display:flex;gap:8px;">
-        <input class="text-input" id="manualP" type="number" min="0" placeholder="Protein /100g" style="flex:1;font-size:13px;padding:12px 10px" />
-        <input class="text-input" id="manualC" type="number" min="0" placeholder="Carbs /100g" style="flex:1;font-size:13px;padding:12px 10px" />
-        <input class="text-input" id="manualF" type="number" min="0" placeholder="Fat /100g" style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualP"   type="number" min="0" placeholder="Protein /100g" style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualC"   type="number" min="0" placeholder="Carbs /100g"   style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualF"   type="number" min="0" placeholder="Fat /100g"     style="flex:1;font-size:13px;padding:12px 10px" />
+        <input class="text-input" id="manualFib" type="number" min="0" placeholder="Fiber /100g"   style="flex:1;font-size:13px;padding:12px 10px" />
       </div>
       <button class="btn-primary" id="manualAddBtn">Use These Values</button>
     </div>
@@ -88,6 +106,10 @@
         <div class="macro-cell">
           <div class="macro-cell-val fat" id="detailFat">0g</div>
           <div class="macro-cell-label">Fat</div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-val fiber" id="detailFiber">0g</div>
+          <div class="macro-cell-label">Fiber</div>
         </div>
       </div>
       <div class="gram-input-wrap">
@@ -212,6 +234,8 @@
       <div class="target-row"><label>Protein</label> <input class="target-input" id="targetProtein"  type="number" value="150"  /><span class="target-unit">g</span></div>
       <div class="target-row"><label>Carbs</label>   <input class="target-input" id="targetCarbs"    type="number" value="200"  /><span class="target-unit">g</span></div>
       <div class="target-row"><label>Fat</label>     <input class="target-input" id="targetFat"      type="number" value="65"   /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Fiber</label>  <input class="target-input" id="targetFiber"    type="number" value="25"   /><span class="target-unit">g</span></div>
+      <div class="target-row"><label>Water</label>  <input class="target-input" id="targetWater"    type="number" value="2000" /><span class="target-unit">ml</span></div>
       <div class="gap"></div>
       <button class="btn-ghost" id="calcTargetsBtn" style="max-width:380px">Calculate from Profile</button>
     </div>
@@ -236,6 +260,10 @@
         <div class="macro-cell">
           <div class="macro-cell-val fat" id="modalFat">0g</div>
           <div class="macro-cell-label">Fat</div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-val fiber" id="modalFiber">0g</div>
+          <div class="macro-cell-label">Fiber</div>
         </div>
       </div>
       <div class="gram-input-wrap">

@@ -160,6 +160,8 @@ body {
 .macro-fill.protein  { background: #4a9eff; }
 .macro-fill.carbs    { background: #f59e0b; }
 .macro-fill.fat      { background: #a78bfa; }
+.macro-fill.fiber    { background: #34d399; }
+.macro-fill.water    { background: #38bdf8; }
 
 .macro-val {
   font-size: 12px;
@@ -346,7 +348,7 @@ body {
 
 .macro-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   width: 100%;
   max-width: 380px;
@@ -365,6 +367,7 @@ body {
 .macro-cell-val.protein { color: #4a9eff; }
 .macro-cell-val.carbs   { color: #f59e0b; }
 .macro-cell-val.fat     { color: #a78bfa; }
+.macro-cell-val.fiber   { color: #34d399; }
 .macro-cell-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-top: 4px; }
 
 .gram-input-wrap {
@@ -389,6 +392,30 @@ body {
   text-align: center;
 }
 .gram-input:focus { outline: none; border-color: #94a3b8; }
+
+.water-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 8px;
+}
+
+.water-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.water-btn:active { background: #dbeafe; }
+.water-btn.water-reset { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+.water-btn.water-reset:active { background: #f1f5f9; }
 
 .freq-row {
   display: flex;
