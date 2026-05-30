@@ -217,7 +217,33 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
 });
 
-// ── Food search (Nutritionix) ──
+// ── Food search (USDA FoodData Central) ──
+const UK_TO_US = {
+  'sweetcorn': 'sweet corn', 'courgette': 'zucchini', 'aubergine': 'eggplant',
+  'rocket': 'arugula', 'coriander': 'cilantro', 'spring onion': 'scallion',
+  'spring onions': 'scallions', 'mangetout': 'snow peas', 'mange tout': 'snow peas',
+  'swede': 'rutabaga', 'beetroot': 'beet', 'porridge': 'oatmeal',
+  'jacket potato': 'baked potato', 'prawns': 'shrimp', 'prawn': 'shrimp',
+  'broad beans': 'fava beans', 'runner beans': 'green beans',
+  'mince': 'ground beef', 'minced beef': 'ground beef',
+  'minced lamb': 'ground lamb', 'minced pork': 'ground pork',
+  'caster sugar': 'granulated sugar', 'icing sugar': 'powdered sugar',
+  'plain flour': 'all-purpose flour', 'wholemeal flour': 'whole wheat flour',
+  'skimmed milk': 'skim milk', 'semi-skimmed milk': 'reduced fat milk',
+  'full fat milk': 'whole milk', 'double cream': 'heavy cream',
+  'single cream': 'light cream', 'natural yoghurt': 'plain yogurt',
+  'greek yoghurt': 'greek yogurt',
+};
+
+function normalizeQuery(q) {
+  return UK_TO_US[q.toLowerCase()] || q;
+}
+
+function usdaNutrient(nutrients, number) {
+  const n = (nutrients || []).find(n => +n.nutrientNumber === number);
+  return n ? (n.value || 0) : 0;
+}
+
 let searchTimer = null;
 
 document.getElementById('quickSearch').addEventListener('input', e => {
@@ -237,92 +263,47 @@ document.getElementById('quickSearch').addEventListener('keydown', e => {
 });
 
 async function runSearch(q) {
-  const { nixId, nixKey } = getSettings();
   const resultsEl = document.getElementById('searchResults');
-
-  const manualRow = (label, meta) => `<div class="search-result-item search-result-manual">
-    <div class="result-name">${label}</div>
-    <div class="result-meta">${meta}</div>
-  </div>`;
-
-  if (!nixId || !nixKey) {
-    resultsEl.innerHTML = manualRow(`+ Add "${q}" manually`, 'Add Nutritionix keys in Settings for food search');
-    resultsEl.classList.remove('hidden');
-    resultsEl.querySelector('.search-result-manual').addEventListener('click', () => {
-      resultsEl.classList.add('hidden');
-      showManualEntry(q);
-    });
-    return;
-  }
-
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
 
   try {
-    const res  = await fetch(
-      `https://trackapi.nutritionix.com/v2/search/instant?query=${encodeURIComponent(q)}&detailed=true`,
-      { headers: { 'x-app-id': nixId, 'x-app-key': nixKey } }
+    const query = normalizeQuery(q);
+    const res   = await fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=10&dataType=Foundation,SR%20Legacy`
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data  = await res.json();
+    const foods = (data.foods || []).slice(0, 7);
 
-    const common  = (data.common  || []).slice(0, 5);
-    const branded = (data.branded || []).slice(0, 3);
+    const manualHTML = `<div class="search-result-item search-result-manual">
+      <div class="result-name">+ Add "${q}" manually</div>
+      <div class="result-meta">Enter macros yourself</div>
+    </div>`;
 
-    if (!common.length && !branded.length) {
-      resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">No results</div>'
-        + manualRow(`+ Add "${q}" manually`, 'Enter macros yourself');
+    if (!foods.length) {
+      resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">No results — try different spelling</div>' + manualHTML;
     } else {
-      resultsEl.innerHTML =
-        common.map((f, i) => `<div class="search-result-item" data-type="common" data-i="${i}">
-          <div class="result-name">${f.food_name}</div>
-          <div class="result-meta">Generic</div>
-        </div>`).join('') +
-        branded.map((f, i) => `<div class="search-result-item" data-type="branded" data-i="${i}">
-          <div class="result-name">${f.food_name}${f.brand_name ? ` · <span style="color:#94a3b8;font-weight:400">${f.brand_name}</span>` : ''}</div>
-          <div class="result-meta">${f.serving_qty || 1} ${f.serving_unit || 'serving'}${f.nf_calories ? ` · ${Math.round(f.nf_calories)} kcal` : ''}</div>
-        </div>`).join('') +
-        manualRow(`+ Add "${q}" manually`, 'Enter macros yourself');
+      resultsEl.innerHTML = foods.map((food, i) => {
+        const p = Math.round(usdaNutrient(food.foodNutrients, 203) * 10) / 10;
+        const c = Math.round(usdaNutrient(food.foodNutrients, 205) * 10) / 10;
+        const f = Math.round(usdaNutrient(food.foodNutrients, 204) * 10) / 10;
+        return `<div class="search-result-item" data-i="${i}">
+          <div class="result-name">${food.description}</div>
+          <div class="result-meta">P ${p}g · C ${c}g · F ${f}g per 100g</div>
+        </div>`;
+      }).join('') + manualHTML;
     }
 
-    resultsEl.querySelectorAll('[data-type="common"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const food = common[+el.dataset.i];
-        resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Loading…</div>';
-        try {
-          const r2  = await fetch('https://trackapi.nutritionix.com/v2/natural/nutrients', {
-            method:  'POST',
-            headers: { 'x-app-id': nixId, 'x-app-key': nixKey, 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ query: `100g ${food.food_name}` })
-          });
-          const d2   = await r2.json();
-          const item = d2.foods?.[0];
-          if (!item) throw new Error('no data');
-          const w = item.serving_weight_grams || 100;
-          selectedFood = {
-            name:       item.food_name,
-            protein100: (item.nf_protein            || 0) * 100 / w,
-            carbs100:   (item.nf_total_carbohydrate || 0) * 100 / w,
-            fat100:     (item.nf_total_fat          || 0) * 100 / w,
-            source:     'Nutritionix'
-          };
-          resultsEl.classList.add('hidden');
-          document.getElementById('quickSearch').value = '';
-          showFoodDetail();
-        } catch { resultsEl.classList.add('hidden'); showManualEntry(food.food_name); }
-      });
-    });
-
-    resultsEl.querySelectorAll('[data-type="branded"]').forEach(el => {
+    resultsEl.querySelectorAll('.search-result-item:not(.search-result-manual)').forEach((el, i) => {
       el.addEventListener('click', () => {
-        const food = branded[+el.dataset.i];
-        const w = food.serving_weight_grams || 100;
+        const food = foods[i];
         selectedFood = {
-          name:       food.brand_name ? `${food.food_name} (${food.brand_name})` : food.food_name,
-          protein100: (food.nf_protein            || 0) * 100 / w,
-          carbs100:   (food.nf_total_carbohydrate || 0) * 100 / w,
-          fat100:     (food.nf_total_fat          || 0) * 100 / w,
-          source:     food.brand_name || 'Nutritionix'
+          name:       food.description,
+          protein100: usdaNutrient(food.foodNutrients, 203),
+          carbs100:   usdaNutrient(food.foodNutrients, 205),
+          fat100:     usdaNutrient(food.foodNutrients, 204),
+          source:     'USDA'
         };
         resultsEl.classList.add('hidden');
         document.getElementById('quickSearch').value = '';
@@ -336,7 +317,7 @@ async function runSearch(q) {
     });
 
   } catch(e) {
-    resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed — check keys in Settings</div>';
+    resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed — check connection</div>';
   }
 }
 
@@ -843,8 +824,6 @@ document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsF
 document.getElementById('openSettings').addEventListener('click', () => {
   const s = getSettings();
   document.getElementById('apiKeyInput').value    = s.apiKey  || '';
-  document.getElementById('nixAppId').value       = s.nixId   || '';
-  document.getElementById('nixAppKey').value      = s.nixKey  || '';
   document.getElementById('targetCalories').value = s.calories || 2000;
   document.getElementById('targetProtein').value  = s.protein  || 150;
   document.getElementById('targetCarbs').value    = s.carbs    || 200;
@@ -863,8 +842,6 @@ document.getElementById('settingsBack').addEventListener('click', () => { showSc
 document.getElementById('saveSettings').addEventListener('click', () => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({
     apiKey:   document.getElementById('apiKeyInput').value.trim(),
-    nixId:    document.getElementById('nixAppId').value.trim(),
-    nixKey:   document.getElementById('nixAppKey').value.trim(),
     calories: +document.getElementById('targetCalories').value || 2000,
     protein:  +document.getElementById('targetProtein').value  || 150,
     carbs:    +document.getElementById('targetCarbs').value    || 200,
