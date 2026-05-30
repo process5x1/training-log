@@ -87,7 +87,6 @@ function renderFrequent() {
         source:     'Frequent'
       };
       document.getElementById('quickSearch').value = '';
-      document.getElementById('searchResults').classList.add('hidden');
       showFoodDetail();
     });
   });
@@ -219,104 +218,15 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.meal-picker').forEach(p => p.classList.add('hidden'));
 });
 
-// ── Inline search on home ──
-let searchTimer = null;
-document.getElementById('quickSearch').addEventListener('input', e => {
+// ── Add food by name ──
+document.getElementById('quickSearch').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
   const q = e.target.value.trim();
+  if (!q) return;
+  e.target.value = '';
   document.getElementById('foodDetail').classList.add('hidden');
-  document.getElementById('manualEntry').classList.add('hidden');
-  if (q.length < 4) { document.getElementById('searchResults').classList.add('hidden'); return; }
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => runSearch(q), 400);
+  showManualEntry(q);
 });
-
-async function runSearch(q) {
-  const resultsEl = document.getElementById('searchResults');
-  resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
-  resultsEl.classList.remove('hidden');
-  try {
-    let foods = [];
-
-    try {
-      const res  = await fetch(`https://uk.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q.toLowerCase())}&search_simple=1&action=process&json=1&page_size=24&fields=product_name,nutriments,generic_name&sort_by=unique_scans_n`);
-      const data = await res.json();
-
-      const isEnglish = name =>
-        /^[a-zA-Z0-9 &'()\-.,!%]+$/.test(name) &&
-        !/^[A-Z\s&0-9,.-]+$/.test(name) &&
-        name.length >= 2 && name.length <= 80;
-
-      foods = (data.products || [])
-        .filter(p => {
-          const name = p.generic_name || p.product_name;
-          if (!name || !isEnglish(name)) return false;
-          const n = p.nutriments || {};
-          return (n.proteins_100g || 0) + (n.carbohydrates_100g || 0) + (n.fat_100g || 0) > 0;
-        })
-        .slice(0, 8)
-        .map(p => ({
-          description: p.generic_name || p.product_name,
-          foodNutrients: [
-            { nutrientNumber: 203, value: p.nutriments.proteins_100g      || 0 },
-            { nutrientNumber: 205, value: p.nutriments.carbohydrates_100g || 0 },
-            { nutrientNumber: 204, value: p.nutriments.fat_100g           || 0 },
-          ],
-          _source: 'Open Food Facts'
-        }));
-    } catch(_) {}
-
-    function getNutrient(nutrients, nameFragment, number) {
-      const n = nutrients.find(n =>
-        n.nutrientNumber === number ||
-        n.nutrientName?.toLowerCase().includes(nameFragment)
-      );
-      return n ? n.value || 0 : 0;
-    }
-
-    const manualHTML = `<div class="search-result-item search-result-manual">
-      <div class="result-name">+ Add "${q}" manually</div>
-      <div class="result-meta">Enter macros yourself</div>
-    </div>`;
-
-    if (!foods.length) {
-      resultsEl.innerHTML = manualHTML;
-    } else {
-      resultsEl.innerHTML = foods.map((food, i) => {
-        const nutrients = food.foodNutrients || [];
-        const p = Math.round(getNutrient(nutrients, 'protein', 203) * 10) / 10;
-        const c = Math.round(getNutrient(nutrients, 'carbohydrate', 205) * 10) / 10;
-        const f = Math.round(getNutrient(nutrients, 'total lipid', 204) * 10) / 10;
-        return `<div class="search-result-item" data-i="${i}">
-          <div class="result-name">${food.description}</div>
-          <div class="result-meta">P ${p}g · C ${c}g · F ${f}g per 100g</div>
-        </div>`;
-      }).join('') + manualHTML;
-    }
-
-    resultsEl.querySelectorAll('.search-result-item:not(.search-result-manual)').forEach((item, i) => {
-      item.addEventListener('click', () => {
-        const food = foods[i];
-        const nutrients = food.foodNutrients || [];
-        selectedFood = {
-          name:       food.description,
-          protein100: getNutrient(nutrients, 'protein', 203),
-          carbs100:   getNutrient(nutrients, 'carbohydrate', 205),
-          fat100:     getNutrient(nutrients, 'total lipid', 204),
-          source:     food._source || 'USDA Food Database'
-        };
-        resultsEl.classList.add('hidden');
-        showFoodDetail();
-      });
-    });
-
-    resultsEl.querySelector('.search-result-manual').addEventListener('click', () => {
-      resultsEl.classList.add('hidden');
-      showManualEntry(q);
-    });
-  } catch(e) {
-    resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed — check your connection</div>';
-  }
-}
 
 function showManualEntry(name) {
   document.getElementById('manualName').value = name;
@@ -324,7 +234,6 @@ function showManualEntry(name) {
   document.getElementById('manualC').value    = '';
   document.getElementById('manualF').value    = '';
   document.getElementById('foodDetail').classList.add('hidden');
-  document.getElementById('searchResults').classList.add('hidden');
   document.getElementById('manualEntry').classList.remove('hidden');
 }
 
@@ -569,7 +478,6 @@ function startScanner() {
         selectedFood = { name: data.product.product_name || 'Unknown product', protein100: n['proteins_100g'] || 0, carbs100: n['carbohydrates_100g'] || 0, fat100: n['fat_100g'] || 0, source: 'Open Food Facts' };
         stopScanner();
         showScreen('homeScreen');
-        document.getElementById('searchResults').classList.add('hidden');
         showFoodDetail();
       } catch(e) { status.textContent = 'Lookup failed'; }
     },
@@ -660,7 +568,6 @@ document.getElementById('labelPhoto').addEventListener('change', async e => {
 
   showScreen('homeScreen');
   document.getElementById('quickSearch').value = '';
-  document.getElementById('searchResults').classList.add('hidden');
   document.getElementById('foodDetail').classList.add('hidden');
   document.getElementById('manualEntry').classList.add('hidden');
 
