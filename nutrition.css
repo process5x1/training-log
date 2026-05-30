@@ -259,38 +259,6 @@ body {
 .ai-result.loading { color: #94a3b8; font-style: italic; }
 .ai-result.error   { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
 
-/* Search */
-.search-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 380px;
-}
-
-.search-results {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0; right: 0;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  overflow: hidden;
-  z-index: 10;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.search-result-item {
-  padding: 13px 18px;
-  font-size: 14px;
-  cursor: pointer;
-  border-bottom: 1px solid #e2e8f0;
-}
-.search-result-item:last-child { border-bottom: none; }
-.search-result-item:active { background: #f1f5f9; }
-.result-name { font-weight: 500; }
-.result-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
-.search-result-manual { border-top: 1px solid #e2e8f0; }
-.search-result-manual .result-name { color: #2563eb; }
 
 /* Food detail */
 .food-detail-name {

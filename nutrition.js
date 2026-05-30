@@ -1,6 +1,5 @@
 const STORAGE_KEY  = 'nutritionLog_v1';
 const SETTINGS_KEY = 'nutritionSettings';
-const USDA_KEY     = 'DEMO_KEY';
 
 let selectedFood  = null;
 let selectedUnit  = 'g';
