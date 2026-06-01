@@ -1,6 +1,6 @@
 // ── Config (edit these two lines on GitHub) ──
-const APP_PASSCODE     = 'CHANGE_ME';   // ← your access code for friends
-const USDA_DEFAULT_KEY = 'DEMO_KEY';    // ← your free USDA key from fdc.nal.usda.gov/api-key-signup
+const APP_PASSCODE     = '50001';
+const USDA_DEFAULT_KEY = 'bZg4aK7p4Zab181SeN0EZmgNt4CIzp5tdd9EbacJ';
 
 const STORAGE_KEY  = 'nutritionLog_v1';
 const SETTINGS_KEY = 'nutritionSettings';
