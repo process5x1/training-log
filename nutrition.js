@@ -371,7 +371,7 @@ async function runSearch(q) {
     });
 
   } catch(e) {
-    resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed — check connection</div>';
+    resultsEl.innerHTML = `<div class="search-result-item" style="color:#94a3b8;cursor:default">Search failed: ${e.message}</div>`;
   }
 }
 
