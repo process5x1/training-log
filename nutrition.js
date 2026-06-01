@@ -321,10 +321,17 @@ async function runSearch(q) {
   resultsEl.classList.remove('hidden');
 
   try {
-    const query = normalizeQuery(q);
-    const res   = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=10&dataType=Foundation,SR%20Legacy`
+    const query  = normalizeQuery(q);
+    const apiKey = getSettings().usdaKey || 'DEMO_KEY';
+    const res    = await fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=10&dataType=Foundation,SR%20Legacy`
     );
+    if (res.status === 429) {
+      resultsEl.innerHTML = `<div class="search-result-item" style="color:#dc2626;cursor:default">
+        Rate limit hit — add your free USDA key in Settings (fdc.nal.usda.gov/api-key-signup)
+      </div>`;
+      return;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data  = await res.json();
     const foods = (data.foods || []).slice(0, 7);
@@ -885,7 +892,8 @@ document.getElementById('calcTargetsBtn').addEventListener('click', calcTargetsF
 
 document.getElementById('openSettings').addEventListener('click', () => {
   const s = getSettings();
-  document.getElementById('apiKeyInput').value    = s.apiKey  || '';
+  document.getElementById('apiKeyInput').value    = s.apiKey   || '';
+  document.getElementById('usdaKeyInput').value   = s.usdaKey  || '';
   document.getElementById('targetCalories').value = s.calories || 2000;
   document.getElementById('targetProtein').value  = s.protein  || 150;
   document.getElementById('targetCarbs').value    = s.carbs    || 200;
@@ -906,6 +914,7 @@ document.getElementById('settingsBack').addEventListener('click', () => { showSc
 document.getElementById('saveSettings').addEventListener('click', () => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify({
     apiKey:   document.getElementById('apiKeyInput').value.trim(),
+    usdaKey:  document.getElementById('usdaKeyInput').value.trim(),
     calories: +document.getElementById('targetCalories').value || 2000,
     protein:  +document.getElementById('targetProtein').value  || 150,
     carbs:    +document.getElementById('targetCarbs').value    || 200,
