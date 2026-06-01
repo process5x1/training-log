@@ -1,3 +1,7 @@
+// ── Config (edit these two lines on GitHub) ──
+const APP_PASSCODE     = 'CHANGE_ME';   // ← your access code for friends
+const USDA_DEFAULT_KEY = 'DEMO_KEY';    // ← your free USDA key from fdc.nal.usda.gov/api-key-signup
+
 const STORAGE_KEY  = 'nutritionLog_v1';
 const SETTINGS_KEY = 'nutritionSettings';
 const WATER_KEY    = 'waterLog_v1';
@@ -321,8 +325,9 @@ async function runSearch(q) {
   resultsEl.classList.remove('hidden');
 
   try {
-    const query  = normalizeQuery(q);
-    const apiKey = getSettings().usdaKey || 'DEMO_KEY';
+    const query    = normalizeQuery(q);
+    const approved = localStorage.getItem('gateApproved');
+    const apiKey   = getSettings().usdaKey || (approved ? USDA_DEFAULT_KEY : 'DEMO_KEY');
     const res    = await fetch(
       `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=10&dataType=Foundation,SR%20Legacy`
     );
@@ -932,6 +937,39 @@ document.getElementById('saveSettings').addEventListener('click', () => {
   renderHome();
 });
 
+// ── Gate ──
+document.getElementById('gateSubmit').addEventListener('click', () => {
+  const code = document.getElementById('gateInput').value.trim();
+  if (code === APP_PASSCODE) {
+    localStorage.setItem('gateApproved', '1');
+    document.getElementById('gateError').classList.add('hidden');
+    showScreen('homeScreen');
+    renderHome();
+  } else {
+    document.getElementById('gateError').classList.remove('hidden');
+  }
+});
+
+document.getElementById('gateInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('gateSubmit').click();
+});
+
+document.getElementById('gateOwnKey').addEventListener('click', () => {
+  localStorage.setItem('gateApproved', '0');
+  showScreen('settingsScreen');
+  const s = getSettings();
+  document.getElementById('apiKeyInput').value  = s.apiKey  || '';
+  document.getElementById('usdaKeyInput').value = s.usdaKey || '';
+});
+
 // ── Init ──
-showScreen('homeScreen');
-renderHome();
+(function() {
+  const approved = localStorage.getItem('gateApproved');
+  const hasOwnKey = getSettings().usdaKey;
+  if (approved === '1' || hasOwnKey) {
+    showScreen('homeScreen');
+    renderHome();
+  } else {
+    showScreen('gateScreen');
+  }
+})();

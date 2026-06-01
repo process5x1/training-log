@@ -18,6 +18,44 @@ body {
   padding: 80px 20px 48px;
 }
 
+.gate-screen {
+  justify-content: center;
+  padding: 24px;
+}
+
+.gate-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.gate-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.gate-sub {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.gate-divider {
+  font-size: 12px;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .screen-title {
   font-size: 13px;
   letter-spacing: 0.15em;

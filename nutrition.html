@@ -299,6 +299,19 @@
     </div>
   </div>
 
+  <!-- Gate screen -->
+  <div id="gateScreen" class="screen gate-screen">
+    <div class="gate-card">
+      <div class="gate-title">Training Log</div>
+      <div class="gate-sub">Enter your access code or add your own USDA key to continue.</div>
+      <input class="text-input" id="gateInput" type="password" placeholder="Access code…" />
+      <div id="gateError" class="hidden" style="font-size:13px;color:#dc2626;width:100%;text-align:center">Wrong code — try again</div>
+      <button class="btn-primary" id="gateSubmit">Unlock</button>
+      <div class="gate-divider">or</div>
+      <button class="btn-ghost" id="gateOwnKey">I'll use my own USDA key →</button>
+    </div>
+  </div>
+
   <script src="nutrition.js"></script>
 </body>
 </html>
