@@ -361,16 +361,33 @@ async function runSearch(q) {
     }
 
     resultsEl.querySelectorAll('.search-result-item:not(.search-result-manual)').forEach((el, i) => {
-      el.addEventListener('click', () => {
-        const food = foods[i];
-        selectedFood = {
-          name:       food.description,
-          protein100: usdaNutrient(food.foodNutrients, 203),
-          carbs100:   usdaNutrient(food.foodNutrients, 205),
-          fat100:     usdaNutrient(food.foodNutrients, 204),
-          fiber100:   usdaNutrient(food.foodNutrients, 291),
-          source:     'USDA'
-        };
+      el.addEventListener('click', async () => {
+        const food   = foods[i];
+        const approved = localStorage.getItem('gateApproved');
+        const apiKey   = getSettings().usdaKey || (approved === '1' ? USDA_DEFAULT_KEY : 'DEMO_KEY');
+        resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Loading…</div>';
+        try {
+          const r2   = await fetch(`https://api.nal.usda.gov/fdc/v1/food/${food.fdcId}?api_key=${apiKey}`);
+          const full = await r2.json();
+          const nuts = full.foodNutrients || food.foodNutrients;
+          selectedFood = {
+            name:       food.description,
+            protein100: usdaNutrient(nuts, 203),
+            carbs100:   usdaNutrient(nuts, 205),
+            fat100:     usdaNutrient(nuts, 204),
+            fiber100:   usdaNutrient(nuts, 291),
+            source:     'USDA'
+          };
+        } catch {
+          selectedFood = {
+            name:       food.description,
+            protein100: usdaNutrient(food.foodNutrients, 203),
+            carbs100:   usdaNutrient(food.foodNutrients, 205),
+            fat100:     usdaNutrient(food.foodNutrients, 204),
+            fiber100:   usdaNutrient(food.foodNutrients, 291),
+            source:     'USDA'
+          };
+        }
         resultsEl.classList.add('hidden');
         document.getElementById('quickSearch').value = '';
         showFoodDetail();
