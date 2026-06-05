@@ -595,6 +595,16 @@ document.getElementById('addFoodBtn').addEventListener('click', () => {
   renderHome();
 });
 
+function closeFoodDetail() {
+  selectedFood = null;
+  document.getElementById('foodDetail').classList.add('hidden');
+  document.getElementById('addFoodBtn').textContent = 'Add to Log';
+}
+document.getElementById('addFoodCancel').addEventListener('click', closeFoodDetail);
+document.getElementById('foodDetail').addEventListener('click', e => {
+  if (e.target === document.getElementById('foodDetail')) closeFoodDetail();
+});
+
 // ── Edit modal ──
 let modalUnit = 'g';
 let modalFood = null;

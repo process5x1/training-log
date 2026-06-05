@@ -89,47 +89,52 @@
       <button class="btn-primary" id="manualAddBtn">Use These Values</button>
     </div>
 
-    <div id="foodDetail" class="hidden" style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px">
-      <div class="food-detail-name" id="detailName"></div>
-      <div class="food-detail-source" id="detailSource"></div>
-      <div class="macro-grid">
-        <div class="macro-cell">
-          <div class="macro-cell-val protein" id="detailProtein">0g</div>
-          <div class="macro-cell-label">Protein</div>
+    <div id="foodDetail" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-food-name" id="detailName"></div>
+        <div class="food-detail-source" id="detailSource"></div>
+        <div class="macro-grid">
+          <div class="macro-cell">
+            <div class="macro-cell-val protein" id="detailProtein">0g</div>
+            <div class="macro-cell-label">Protein</div>
+          </div>
+          <div class="macro-cell">
+            <div class="macro-cell-val carbs" id="detailCarbs">0g</div>
+            <div class="macro-cell-label">Carbs</div>
+          </div>
+          <div class="macro-cell">
+            <div class="macro-cell-val fat" id="detailFat">0g</div>
+            <div class="macro-cell-label">Fat</div>
+          </div>
+          <div class="macro-cell">
+            <div class="macro-cell-val fiber" id="detailFiber">0g</div>
+            <div class="macro-cell-label">Fiber</div>
+          </div>
         </div>
-        <div class="macro-cell">
-          <div class="macro-cell-val carbs" id="detailCarbs">0g</div>
-          <div class="macro-cell-label">Carbs</div>
+        <div class="gram-input-wrap">
+          <input class="gram-input" id="gramInput" type="number" value="100" min="1" />
+          <div id="perPieceWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
+            <span style="font-size:13px;color:#94a3b8">×</span>
+            <input class="gram-input" id="perPieceInput" type="number" value="55" min="1" style="width:76px" />
+            <span style="font-size:12px;color:#64748b">g ea</span>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="unit-chip selected" id="unitG">g</button>
+            <button class="unit-chip" id="unitMl">ml</button>
+            <button class="unit-chip" id="unitPcs">pcs</button>
+          </div>
         </div>
-        <div class="macro-cell">
-          <div class="macro-cell-val fat" id="detailFat">0g</div>
-          <div class="macro-cell-label">Fat</div>
+        <div id="pcsPresets" style="display:none;flex-wrap:wrap;gap:6px">
+          <button class="pcs-preset" data-g="48">S · 48g</button>
+          <button class="pcs-preset" data-g="58">M · 58g</button>
+          <button class="pcs-preset" data-g="68">L · 68g</button>
+          <button class="pcs-preset" data-g="75">XL · 75g</button>
         </div>
-        <div class="macro-cell">
-          <div class="macro-cell-val fiber" id="detailFiber">0g</div>
-          <div class="macro-cell-label">Fiber</div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="addFoodCancel">Cancel</button>
+          <button class="btn-primary" id="addFoodBtn">Add to Log</button>
         </div>
       </div>
-      <div class="gram-input-wrap">
-        <input class="gram-input" id="gramInput" type="number" value="100" min="1" />
-        <div id="perPieceWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
-          <span style="font-size:13px;color:#94a3b8">×</span>
-          <input class="gram-input" id="perPieceInput" type="number" value="55" min="1" style="width:76px" />
-          <span style="font-size:12px;color:#64748b">g ea</span>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="unit-chip selected" id="unitG">g</button>
-          <button class="unit-chip" id="unitMl">ml</button>
-          <button class="unit-chip" id="unitPcs">pcs</button>
-        </div>
-      </div>
-      <div id="pcsPresets" style="display:none;flex-wrap:wrap;gap:6px;width:100%;max-width:380px;margin-bottom:4px">
-        <button class="pcs-preset" data-g="48">S · 48g</button>
-        <button class="pcs-preset" data-g="58">M · 58g</button>
-        <button class="pcs-preset" data-g="68">L · 68g</button>
-        <button class="pcs-preset" data-g="75">XL · 75g</button>
-      </div>
-      <button class="btn-primary" id="addFoodBtn">Add to Log</button>
     </div>
 
     <div class="home-actions">
