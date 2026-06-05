@@ -264,6 +264,21 @@ body {
   justify-content: space-between;
 }
 
+.drag-handle {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 0 0;
+  color: #cbd5e1;
+  font-size: 18px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  line-height: 1;
+}
+.drag-handle:active { cursor: grabbing; color: #94a3b8; }
+.log-item.dragging { opacity: 0.35; }
+.log-item.drag-over { border-top: 2px solid #6366f1; background: rgba(99,102,241,0.04); }
+
 .log-item-name    { font-size: 14px; font-weight: 500; }
 .log-item-macros  { font-size: 11px; color: #64748b; margin-top: 2px; }
 

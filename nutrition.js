@@ -175,7 +175,8 @@ function renderHome() {
       ? `${item.pieces} pcs`
       : (item.grams ? `${item.grams}${item.unit || 'g'}` : '');
     return `
-      <div class="log-item">
+      <div class="log-item" data-idx="${i}">
+        <div class="drag-handle" title="Drag to reorder">⠿</div>
         <div class="log-item-body" data-i="${i}" style="flex:1;cursor:pointer">
           <div class="log-item-name">${item.name}${qty ? ` — ${qty}` : ''}</div>
           <div class="log-item-macros">P ${Math.round(item.protein)}g · C ${Math.round(item.carbs)}g · F ${Math.round(item.fat)}g</div>
@@ -245,6 +246,76 @@ function renderHome() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
       btn.textContent = '✓';
       setTimeout(() => { btn.textContent = '→'; }, 1000);
+    });
+  });
+
+  // Drag-to-reorder
+  let dragIdx = null;
+
+  list.querySelectorAll('.log-item').forEach(row => {
+    const handle = row.querySelector('.drag-handle');
+    const idx = +row.dataset.idx;
+
+    // Desktop drag
+    handle.addEventListener('mousedown', () => { row.draggable = true; });
+    row.addEventListener('dragstart', e => {
+      dragIdx = idx;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => row.classList.add('dragging'), 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.draggable = false;
+      row.classList.remove('dragging');
+      list.querySelectorAll('.log-item').forEach(r => r.classList.remove('drag-over'));
+      dragIdx = null;
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      list.querySelectorAll('.log-item').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragIdx === null || dragIdx === idx) return;
+      const l = getLog();
+      const [moved] = l.splice(dragIdx, 1);
+      l.splice(idx, 0, moved);
+      saveLog(l); renderHome();
+    });
+
+    // Touch drag (mobile)
+    handle.addEventListener('touchstart', e => {
+      dragIdx = idx;
+      row.classList.add('dragging');
+      e.preventDefault();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      list.querySelectorAll('.log-item').forEach(r => r.classList.remove('drag-over'));
+      const items = [...list.querySelectorAll('.log-item:not(.dragging)')];
+      const target = items.find(r => {
+        const rect = r.getBoundingClientRect();
+        return y >= rect.top && y <= rect.bottom;
+      });
+      if (target) target.classList.add('drag-over');
+    }, { passive: false });
+
+    handle.addEventListener('touchend', () => {
+      row.classList.remove('dragging');
+      const over = list.querySelector('.log-item.drag-over');
+      if (over && dragIdx !== null) {
+        const overIdx = +over.dataset.idx;
+        if (overIdx !== dragIdx) {
+          const l = getLog();
+          const [moved] = l.splice(dragIdx, 1);
+          l.splice(overIdx, 0, moved);
+          saveLog(l); renderHome(); return;
+        }
+      }
+      list.querySelectorAll('.log-item').forEach(r => r.classList.remove('drag-over'));
+      dragIdx = null;
     });
   });
 }
