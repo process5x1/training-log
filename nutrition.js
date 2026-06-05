@@ -673,32 +673,89 @@ function stopScanner() {
   if (scanner) { scanner.stop().catch(() => {}); scanner = null; }
 }
 
-// ── Analyse ──
+// ── Analyse / Chat ──
+let chatHistory = [];
+
+function buildDayContext() {
+  const log     = getLog();
+  const targets = getTargets();
+  let p = 0, c = 0, f = 0, fib = 0;
+  log.forEach(i => { p += i.protein; c += i.carbs; f += i.fat; fib += (i.fiber || 0); });
+  const cal     = Math.round(p * 4 + c * 4 + f * 9);
+  const logText = log.map(i => `- ${i.name}${i.grams ? ` (${i.grams}g)` : ''}: P${Math.round(i.protein)}g C${Math.round(i.carbs)}g F${Math.round(i.fat)}g Fiber${Math.round(i.fiber||0)}g`).join('\n');
+  return `You are a nutrition coach. Today's log:\n${logText}\n\nTotals: ${Math.round(p)}g protein, ${Math.round(c)}g carbs, ${Math.round(f)}g fat, ${Math.round(fib)}g fiber (${cal} kcal)\nTargets: ${targets.protein}g protein, ${targets.carbs}g carbs, ${targets.fat}g fat, ${targets.fiber}g fiber, ${targets.calories} kcal\n\n`;
+}
+
+function appendChatMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = `chat-msg ${role}`;
+  el.textContent = text;
+  document.getElementById('chatMessages').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return el;
+}
+
+function openChat() {
+  document.getElementById('chatMessages').innerHTML = '';
+  document.getElementById('chatInput').value = '';
+  document.getElementById('chatModal').classList.remove('hidden');
+}
+
+document.getElementById('chatClose').addEventListener('click', () => {
+  document.getElementById('chatModal').classList.add('hidden');
+});
+
 document.getElementById('analyseBtn').addEventListener('click', async () => {
   const { apiKey } = getSettings();
   if (!apiKey) { alert('Add your Claude API key in Settings first.'); return; }
-  const log = getLog();
-  if (!log.length) { alert('Log some food first.'); return; }
+  if (!getLog().length) { alert('Log some food first.'); return; }
 
-  const resultEl = document.getElementById('aiAnalysisResult');
-  resultEl.className = 'ai-result loading';
-  resultEl.textContent = 'Analysing your day…';
-  resultEl.classList.remove('hidden');
+  chatHistory = [];
+  openChat();
+  const loadingEl = appendChatMsg('assistant loading', 'Analysing your day…');
 
-  const targets = getTargets();
-  let p = 0, c = 0, f = 0;
-  log.forEach(i => { p += i.protein; c += i.carbs; f += i.fat; });
-  const cal = Math.round(p * 4 + c * 4 + f * 9);
-  const logText = log.map(i => `- ${i.name}${i.grams ? ` (${i.grams}g)` : ''}: P${Math.round(i.protein)}g C${Math.round(i.carbs)}g F${Math.round(i.fat)}g`).join('\n');
-  const prompt = `You are a nutrition coach. The user has logged today:\n${logText}\n\nTotals: ${Math.round(p)}g protein, ${Math.round(c)}g carbs, ${Math.round(f)}g fat (${cal} kcal)\nDaily targets: ${targets.protein}g protein, ${targets.carbs}g carbs, ${targets.fat}g fat\n\nGive 2-3 short, specific, practical pieces of feedback. Be direct. Under 120 words.`;
+  const firstPrompt = buildDayContext() + 'Give 2-3 short, specific, practical pieces of feedback. Be direct. Under 120 words.';
+  chatHistory.push({ role: 'user', content: firstPrompt });
 
   try {
-    resultEl.className = 'ai-result';
-    resultEl.textContent = await callClaude(apiKey, prompt);
+    const reply = await callClaudeChat(apiKey, chatHistory);
+    chatHistory.push({ role: 'assistant', content: reply });
+    loadingEl.className = 'chat-msg assistant';
+    loadingEl.textContent = reply;
   } catch(e) {
-    resultEl.className = 'ai-result error';
-    resultEl.textContent = 'Error: ' + e.message;
+    loadingEl.className = 'chat-msg assistant';
+    loadingEl.textContent = 'Error: ' + e.message;
   }
+});
+
+async function sendChatMessage() {
+  const { apiKey } = getSettings();
+  const input = document.getElementById('chatInput');
+  const text  = input.value.trim();
+  if (!text || !apiKey) return;
+
+  input.value = '';
+  document.getElementById('chatSend').disabled = true;
+  appendChatMsg('user', text);
+  chatHistory.push({ role: 'user', content: text });
+
+  const loadingEl = appendChatMsg('assistant loading', '…');
+  try {
+    const reply = await callClaudeChat(apiKey, chatHistory);
+    chatHistory.push({ role: 'assistant', content: reply });
+    loadingEl.className = 'chat-msg assistant';
+    loadingEl.textContent = reply;
+  } catch(e) {
+    loadingEl.className = 'chat-msg assistant';
+    loadingEl.textContent = 'Error: ' + e.message;
+  }
+  document.getElementById('chatSend').disabled = false;
+  input.focus();
+}
+
+document.getElementById('chatSend').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChatMessage();
 });
 
 // ── Fridge ──
@@ -844,7 +901,7 @@ document.getElementById('labelPhoto').addEventListener('change', async e => {
 });
 
 // ── Claude API ──
-async function callClaude(key, prompt) {
+async function callClaudeChat(key, messages) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -853,11 +910,15 @@ async function callClaude(key, prompt) {
       'anthropic-dangerous-direct-browser-access': 'true',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, messages }),
   });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP ${res.status}`); }
-  const data = await res.json();
-  return data.content[0].text;
+  return (await res.json()).content[0].text;
+}
+
+async function callClaude(key, prompt) {
+  return callClaudeChat(key, [{ role: 'user', content: prompt }]);
+}
 }
 
 // ── Settings ──

@@ -66,8 +66,6 @@
 
     <div class="log-list" id="logList"></div>
 
-    <div id="aiAnalysisResult" class="hidden"></div>
-
     <!-- Frequent foods -->
     <div id="frequentWrap" class="hidden" style="width:100%;max-width:380px;margin-bottom:12px">
       <div class="screen-title" style="margin-bottom:8px">Frequent</div>
@@ -309,6 +307,21 @@
       <button class="btn-primary" id="gateSubmit">Unlock</button>
       <div class="gate-divider">or</div>
       <button class="btn-ghost" id="gateOwnKey">I'll use my own USDA key →</button>
+    </div>
+  </div>
+
+  <!-- Chat modal -->
+  <div id="chatModal" class="chat-overlay hidden">
+    <div class="chat-sheet">
+      <div class="chat-header">
+        <span class="chat-title">Day Analysis</span>
+        <button class="chat-close" id="chatClose">×</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" type="text" placeholder="Ask a follow-up…" autocomplete="off" />
+        <button class="chat-send" id="chatSend">↑</button>
+      </div>
     </div>
   </div>
 
