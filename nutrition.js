@@ -990,7 +990,6 @@ async function callClaudeChat(key, messages) {
 async function callClaude(key, prompt) {
   return callClaudeChat(key, [{ role: 'user', content: prompt }]);
 }
-}
 
 // ── Settings ──
 function setChip(group, val) {
