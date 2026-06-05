@@ -390,74 +390,123 @@ document.getElementById('quickSearch').addEventListener('keydown', e => {
   }
 });
 
+function offNutrient(nutriments, key) {
+  return +(nutriments?.[key] || 0);
+}
+
+function isEnglishName(name) {
+  if (!name || !name.trim()) return false;
+  const ascii = (name.match(/[\x00-\x7F]/g) || []).length;
+  return ascii / name.length > 0.75;
+}
+
 async function runSearch(q) {
   const resultsEl = document.getElementById('searchResults');
   resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Searching…</div>';
   resultsEl.classList.remove('hidden');
 
-  try {
-    const query    = normalizeQuery(q);
-    const approved = localStorage.getItem('gateApproved');
-    const apiKey   = getSettings().usdaKey || (approved ? USDA_DEFAULT_KEY : 'DEMO_KEY');
-    const res    = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=10&dataType=Foundation,SR%20Legacy`
-    );
-    if (res.status === 429) {
-      resultsEl.innerHTML = `<div class="search-result-item" style="color:#dc2626;cursor:default">
-        Rate limit hit — add your free USDA key in Settings (fdc.nal.usda.gov/api-key-signup)
-      </div>`;
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data  = await res.json();
-    const foods = (data.foods || []).slice(0, 7);
+  const manualHTML = `<div class="search-result-item search-result-manual">
+    <div class="result-name">+ Add "${q}" manually</div>
+    <div class="result-meta">Enter macros yourself</div>
+  </div>`;
 
-    const manualHTML = `<div class="search-result-item search-result-manual">
-      <div class="result-name">+ Add "${q}" manually</div>
-      <div class="result-meta">Enter macros yourself</div>
-    </div>`;
+  try {
+    let foods = [];
+
+    // 1. Open Food Facts — best for UK branded products
+    try {
+      const offRes = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20`
+      );
+      if (offRes.ok) {
+        const offData = await offRes.json();
+        foods = (offData.products || [])
+          .filter(p => {
+            const name = p.product_name_en || p.product_name || '';
+            return isEnglishName(name);
+          })
+          .slice(0, 7)
+          .map(p => ({
+            type:       'off',
+            name:       p.product_name_en || p.product_name,
+            brand:      p.brands || '',
+            protein100: offNutrient(p.nutriments, 'proteins_100g'),
+            carbs100:   offNutrient(p.nutriments, 'carbohydrates_100g'),
+            fat100:     offNutrient(p.nutriments, 'fat_100g'),
+            fiber100:   offNutrient(p.nutriments, 'fiber_100g'),
+          }));
+      }
+    } catch { /* fall through to USDA */ }
+
+    // 2. USDA fallback for generic foods
+    if (foods.length < 2) {
+      const query    = normalizeQuery(q);
+      const approved = localStorage.getItem('gateApproved');
+      const apiKey   = getSettings().usdaKey || (approved ? USDA_DEFAULT_KEY : 'DEMO_KEY');
+      const res = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=${apiKey}&pageSize=10&dataType=Foundation,SR%20Legacy,Branded`
+      );
+      if (res.status === 429) {
+        resultsEl.innerHTML = `<div class="search-result-item" style="color:#dc2626;cursor:default">
+          Rate limit hit — add your free USDA key in Settings
+        </div>`;
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        const usdaFoods = (data.foods || []).slice(0, 7 - foods.length).map(f => ({
+          type:       'usda',
+          fdcId:      f.fdcId,
+          name:       f.description,
+          brand:      f.brandOwner || '',
+          protein100: usdaNutrient(f.foodNutrients, 203),
+          carbs100:   usdaNutrient(f.foodNutrients, 205),
+          fat100:     usdaNutrient(f.foodNutrients, 204),
+          fiber100:   usdaNutrient(f.foodNutrients, 291),
+        }));
+        foods = [...foods, ...usdaFoods];
+      }
+    }
 
     if (!foods.length) {
       resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">No results — try different spelling</div>' + manualHTML;
     } else {
       resultsEl.innerHTML = foods.map((food, i) => {
-        const p = Math.round(usdaNutrient(food.foodNutrients, 203) * 10) / 10;
-        const c = Math.round(usdaNutrient(food.foodNutrients, 205) * 10) / 10;
-        const f = Math.round(usdaNutrient(food.foodNutrients, 204) * 10) / 10;
+        const p = Math.round(food.protein100 * 10) / 10;
+        const c = Math.round(food.carbs100   * 10) / 10;
+        const f = Math.round(food.fat100     * 10) / 10;
+        const sub = food.brand ? food.brand : (food.type === 'usda' ? 'USDA' : 'Open Food Facts');
         return `<div class="search-result-item" data-i="${i}">
-          <div class="result-name">${food.description}</div>
-          <div class="result-meta">P ${p}g · C ${c}g · F ${f}g per 100g</div>
+          <div class="result-name">${food.name}</div>
+          <div class="result-meta">${sub} · P ${p}g · C ${c}g · F ${f}g per 100g</div>
         </div>`;
       }).join('') + manualHTML;
     }
 
     resultsEl.querySelectorAll('.search-result-item:not(.search-result-manual)').forEach((el, i) => {
       el.addEventListener('click', async () => {
-        const food   = foods[i];
-        const approved = localStorage.getItem('gateApproved');
-        const apiKey   = getSettings().usdaKey || (approved === '1' ? USDA_DEFAULT_KEY : 'DEMO_KEY');
-        resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Loading…</div>';
-        try {
-          const r2   = await fetch(`https://api.nal.usda.gov/fdc/v1/food/${food.fdcId}?api_key=${apiKey}`);
-          const full = await r2.json();
-          const nuts = full.foodNutrients || food.foodNutrients;
-          selectedFood = {
-            name:       food.description,
-            protein100: usdaNutrient(nuts, 203),
-            carbs100:   usdaNutrient(nuts, 205),
-            fat100:     usdaNutrient(nuts, 204),
-            fiber100:   usdaNutrient(nuts, 291),
-            source:     'USDA'
-          };
-        } catch {
-          selectedFood = {
-            name:       food.description,
-            protein100: usdaNutrient(food.foodNutrients, 203),
-            carbs100:   usdaNutrient(food.foodNutrients, 205),
-            fat100:     usdaNutrient(food.foodNutrients, 204),
-            fiber100:   usdaNutrient(food.foodNutrients, 291),
-            source:     'USDA'
-          };
+        const food = foods[i];
+        if (food.type === 'usda') {
+          resultsEl.innerHTML = '<div class="search-result-item" style="color:#94a3b8;cursor:default">Loading…</div>';
+          try {
+            const approved = localStorage.getItem('gateApproved');
+            const apiKey   = getSettings().usdaKey || (approved === '1' ? USDA_DEFAULT_KEY : 'DEMO_KEY');
+            const r2   = await fetch(`https://api.nal.usda.gov/fdc/v1/food/${food.fdcId}?api_key=${apiKey}`);
+            const full = await r2.json();
+            const nuts = full.foodNutrients || [];
+            selectedFood = {
+              name:       food.name,
+              protein100: usdaNutrient(nuts, 203),
+              carbs100:   usdaNutrient(nuts, 205),
+              fat100:     usdaNutrient(nuts, 204),
+              fiber100:   usdaNutrient(nuts, 291),
+              source:     'USDA',
+            };
+          } catch {
+            selectedFood = { ...food, source: 'USDA' };
+          }
+        } else {
+          selectedFood = { ...food, source: food.brand || 'Open Food Facts' };
         }
         resultsEl.classList.add('hidden');
         document.getElementById('quickSearch').value = '';
